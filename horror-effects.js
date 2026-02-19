@@ -6,7 +6,7 @@
  * browser autoplay policies.
  *
  * Usage: Include this script on any page. Add CSS classes to elements:
- *   .horror-trigger[data-horror="scramble|glitch|heartbeat|flicker|intensify|calm|whisper-burst"]
+ *   .horror-trigger[data-horror="scramble|glitch|heartbeat|flicker|intensify|calm|whisper-burst|rumble|bleed"]
  *   .horror-whisper[data-whisper="hidden message text"]
  *
  * Exposed API: window.HorrorEngine
@@ -17,34 +17,35 @@
     // =========================================================================
     // CONFIGURATION
     // =========================================================================
-    const CONFIG = {
+    var CONFIG = {
         audio: {
-            masterVolume: 0.15,
-            droneBase: 0.06,
-            whisperVolume: 0.035,
-            heartbeatVolume: 0.07,
-            sharpVolume: 0.025,
+            masterVolume: 0.18,
+            droneBase: 0.08,
+            whisperVolume: 0.05,
+            heartbeatVolume: 0.10,
+            sharpVolume: 0.04,
         },
         visual: {
-            flickerDuration: 120,
-            scrambleDuration: 900,
-            vignetteMin: 0,
-            vignetteMax: 0.45,
+            glitchDuration: 350,
+            scrambleDuration: 1200,
+            vignetteBase: 0.15,       // always-on base vignette
+            vignetteMax: 0.75,
+            flickerCount: 4,          // number of rapid flashes
         },
         timing: {
-            whisperRange: [18000, 50000],
-            ambientRange: [25000, 70000],
+            whisperRange: [10000, 30000],
+            ambientRange: [8000, 22000],   // much more frequent
+            onLoadDelay: 2500,             // first scare after page loads
         },
     };
 
     // =========================================================================
     // AUDIO ENGINE
     // =========================================================================
-    let ctx = null;
-    let master = null;
-    let ready = false;
-    let droneGain = null;
-    let droneSources = [];
+    var ctx = null;
+    var master = null;
+    var ready = false;
+    var droneGain = null;
 
     function initAudio() {
         if (ready) return;
@@ -69,89 +70,84 @@
         droneGain = ctx.createGain();
         droneGain.gain.value = 0;
         droneGain.connect(master);
-        droneGain.gain.linearRampToValueAtTime(CONFIG.audio.droneBase, ctx.currentTime + 5);
+        droneGain.gain.linearRampToValueAtTime(CONFIG.audio.droneBase, ctx.currentTime + 4);
 
         // Sub-bass foundation
-        const bass = ctx.createOscillator();
+        var bass = ctx.createOscillator();
         bass.type = 'sine';
         bass.frequency.value = 42;
         bass.connect(droneGain);
         bass.start();
-        droneSources.push(bass);
 
         // Dissonant tritone overtone
-        const tritone = ctx.createOscillator();
+        var tritone = ctx.createOscillator();
         tritone.type = 'sine';
-        tritone.frequency.value = 59.5; // ~tritone from bass
-        const tGain = ctx.createGain();
-        tGain.gain.value = 0.25;
+        tritone.frequency.value = 59.5;
+        var tGain = ctx.createGain();
+        tGain.gain.value = 0.3;
         tritone.connect(tGain);
         tGain.connect(droneGain);
         tritone.start();
-        droneSources.push(tritone);
 
         // Slow LFO detuning the bass
-        const lfo = ctx.createOscillator();
+        var lfo = ctx.createOscillator();
         lfo.type = 'sine';
         lfo.frequency.value = 0.04;
-        const lfoAmt = ctx.createGain();
-        lfoAmt.gain.value = 1.5;
+        var lfoAmt = ctx.createGain();
+        lfoAmt.gain.value = 2;
         lfo.connect(lfoAmt);
         lfoAmt.connect(bass.frequency);
         lfo.start();
-        droneSources.push(lfo);
 
-        // High ghost tone — barely audible, creates unease
-        const ghost = ctx.createOscillator();
+        // High ghost tone
+        var ghost = ctx.createOscillator();
         ghost.type = 'sine';
-        ghost.frequency.value = 18200; // Near hearing threshold
-        const ghostGain = ctx.createGain();
-        ghostGain.gain.value = 0.008;
+        ghost.frequency.value = 15500;
+        var ghostGain = ctx.createGain();
+        ghostGain.gain.value = 0.012;
         ghost.connect(ghostGain);
         ghostGain.connect(droneGain);
         ghost.start();
-        droneSources.push(ghost);
 
         // Filtered noise layer (wind / breath)
-        const bufLen = ctx.sampleRate * 4;
-        const noiseBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-        const nd = noiseBuf.getChannelData(0);
-        for (let i = 0; i < bufLen; i++) nd[i] = Math.random() * 2 - 1;
+        var bufLen = ctx.sampleRate * 4;
+        var noiseBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+        var nd = noiseBuf.getChannelData(0);
+        for (var i = 0; i < bufLen; i++) nd[i] = Math.random() * 2 - 1;
 
-        const noise = ctx.createBufferSource();
+        var noise = ctx.createBufferSource();
         noise.buffer = noiseBuf;
         noise.loop = true;
 
-        const bp = ctx.createBiquadFilter();
+        var bp = ctx.createBiquadFilter();
         bp.type = 'bandpass';
-        bp.frequency.value = 180;
-        bp.Q.value = 0.6;
+        bp.frequency.value = 200;
+        bp.Q.value = 0.5;
 
-        const nGain = ctx.createGain();
-        nGain.gain.value = 0.018;
+        var nGain = ctx.createGain();
+        nGain.gain.value = 0.025;
 
         noise.connect(bp);
         bp.connect(nGain);
         nGain.connect(droneGain);
         noise.start();
-        droneSources.push(noise);
     }
 
     function setDroneIntensity(intensity) {
         if (!ready || !droneGain) return;
-        const vol = CONFIG.audio.droneBase * (1 + intensity * 4);
+        var vol = CONFIG.audio.droneBase * (1 + intensity * 5);
         droneGain.gain.linearRampToValueAtTime(
-            Math.min(vol, 0.35),
-            ctx.currentTime + 1.5
+            Math.min(vol, 0.4),
+            ctx.currentTime + 1.2
         );
     }
 
     // --- WHISPERS ---
     function scheduleWhisper() {
         if (!ready) return;
-        const delay = CONFIG.timing.whisperRange[0] +
+        var delay = CONFIG.timing.whisperRange[0] +
             Math.random() * (CONFIG.timing.whisperRange[1] - CONFIG.timing.whisperRange[0]);
-        setTimeout(() => {
+        setTimeout(function() {
             playWhisper();
             scheduleWhisper();
         }, delay);
@@ -160,32 +156,32 @@
     function playWhisper() {
         if (!ready || document.hidden) return;
 
-        const dur = 1.2 + Math.random() * 2;
-        const now = ctx.currentTime;
-        const len = ctx.sampleRate * dur;
-        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-        const d = buf.getChannelData(0);
+        var dur = 1.5 + Math.random() * 2.5;
+        var now = ctx.currentTime;
+        var len = Math.floor(ctx.sampleRate * dur);
+        var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        var d = buf.getChannelData(0);
 
-        // Amplitude-modulated noise — speech-like cadence
-        for (let i = 0; i < len; i++) {
-            const mod = Math.sin(i / ctx.sampleRate * Math.PI * (3 + Math.random() * 5));
-            d[i] = (Math.random() * 2 - 1) * Math.max(0, mod) * 0.4;
+        // Amplitude-modulated noise with speech-like cadence
+        for (var i = 0; i < len; i++) {
+            var mod = Math.sin(i / ctx.sampleRate * Math.PI * (3 + Math.random() * 5));
+            d[i] = (Math.random() * 2 - 1) * Math.max(0, mod) * 0.5;
         }
 
-        const src = ctx.createBufferSource();
+        var src = ctx.createBufferSource();
         src.buffer = buf;
 
-        const filt = ctx.createBiquadFilter();
+        var filt = ctx.createBiquadFilter();
         filt.type = 'bandpass';
-        filt.frequency.value = 700 + Math.random() * 1400;
-        filt.Q.value = 2.5;
+        filt.frequency.value = 600 + Math.random() * 1600;
+        filt.Q.value = 3;
 
-        const g = ctx.createGain();
-        g.gain.value = 0;
-        g.gain.linearRampToValueAtTime(CONFIG.audio.whisperVolume, now + 0.25);
+        var g = ctx.createGain();
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(CONFIG.audio.whisperVolume, now + 0.2);
         g.gain.linearRampToValueAtTime(0, now + dur);
 
-        const pan = ctx.createStereoPanner();
+        var pan = ctx.createStereoPanner();
         pan.pan.value = (Math.random() - 0.5) * 1.8;
 
         src.connect(filt);
@@ -199,20 +195,20 @@
     // --- HEARTBEAT ---
     function playHeartbeat(beats) {
         if (!ready) return;
-        beats = beats || 4;
-        const now = ctx.currentTime;
+        beats = beats || 5;
+        var now = ctx.currentTime;
 
-        for (let i = 0; i < beats; i++) {
-            const t = now + i * 0.82;
+        for (var i = 0; i < beats; i++) {
+            var t = now + i * 0.78;
 
             // Lub
-            const o1 = ctx.createOscillator();
+            var o1 = ctx.createOscillator();
             o1.type = 'sine';
-            o1.frequency.setValueAtTime(55, t);
-            o1.frequency.exponentialRampToValueAtTime(28, t + 0.15);
-            const g1 = ctx.createGain();
+            o1.frequency.setValueAtTime(60, t);
+            o1.frequency.exponentialRampToValueAtTime(25, t + 0.15);
+            var g1 = ctx.createGain();
             g1.gain.setValueAtTime(0, t);
-            g1.gain.linearRampToValueAtTime(CONFIG.audio.heartbeatVolume, t + 0.02);
+            g1.gain.linearRampToValueAtTime(CONFIG.audio.heartbeatVolume, t + 0.015);
             g1.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
             o1.connect(g1);
             g1.connect(master);
@@ -220,75 +216,80 @@
             o1.stop(t + 0.35);
 
             // Dub
-            const o2 = ctx.createOscillator();
+            var o2 = ctx.createOscillator();
             o2.type = 'sine';
-            o2.frequency.value = 38;
-            const g2 = ctx.createGain();
-            g2.gain.setValueAtTime(0, t + 0.2);
-            g2.gain.linearRampToValueAtTime(CONFIG.audio.heartbeatVolume * 0.55, t + 0.22);
-            g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+            o2.frequency.value = 35;
+            var g2 = ctx.createGain();
+            g2.gain.setValueAtTime(0, t + 0.18);
+            g2.gain.linearRampToValueAtTime(CONFIG.audio.heartbeatVolume * 0.6, t + 0.2);
+            g2.gain.exponentialRampToValueAtTime(0.001, t + 0.48);
             o2.connect(g2);
             g2.connect(master);
-            o2.start(t + 0.18);
+            o2.start(t + 0.16);
             o2.stop(t + 0.55);
         }
 
         // Pulse vignette with heartbeat
-        let beat = 0;
-        const pulse = setInterval(() => {
+        var beat = 0;
+        var pulse = setInterval(function() {
             if (beat >= beats) { clearInterval(pulse); return; }
-            setVignetteIntensity(0.55);
-            setTimeout(() => setVignetteIntensity(scrollIntensity * 0.3), 300);
+            setVignetteIntensity(0.7);
+            setTimeout(function() { setVignetteIntensity(CONFIG.visual.vignetteBase + scrollIntensity * 0.2); }, 350);
             beat++;
-        }, 820);
+        }, 780);
     }
 
     // --- SHARP DISSONANT TONE ---
     function playSharpTone() {
         if (!ready) return;
-        const now = ctx.currentTime;
-        const o = ctx.createOscillator();
-        o.type = 'sawtooth';
-        o.frequency.value = 2200 + Math.random() * 2800;
+        var now = ctx.currentTime;
 
-        const hp = ctx.createBiquadFilter();
-        hp.type = 'highpass';
-        hp.frequency.value = 1800;
+        // Create two detuned oscillators for dissonance
+        var freqs = [2000 + Math.random() * 2000, 2100 + Math.random() * 2500];
+        for (var f = 0; f < freqs.length; f++) {
+            var o = ctx.createOscillator();
+            o.type = 'sawtooth';
+            o.frequency.value = freqs[f];
 
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(CONFIG.audio.sharpVolume, now + 0.008);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            var hp = ctx.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = 1500;
 
-        o.connect(hp);
-        hp.connect(g);
-        g.connect(master);
-        o.start(now);
-        o.stop(now + 0.5);
+            var g = ctx.createGain();
+            g.gain.setValueAtTime(0, now);
+            g.gain.linearRampToValueAtTime(CONFIG.audio.sharpVolume, now + 0.005);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+            o.connect(hp);
+            hp.connect(g);
+            g.connect(master);
+            o.start(now);
+            o.stop(now + 0.65);
+        }
     }
 
-    // --- LOW RUMBLE (for void / descent moments) ---
+    // --- LOW RUMBLE ---
     function playRumble(duration) {
         if (!ready) return;
-        duration = duration || 3;
-        const now = ctx.currentTime;
+        duration = duration || 4;
+        var now = ctx.currentTime;
 
-        const o = ctx.createOscillator();
+        var o = ctx.createOscillator();
         o.type = 'sine';
-        o.frequency.value = 25;
+        o.frequency.value = 22;
 
-        const lfo2 = ctx.createOscillator();
+        var lfo2 = ctx.createOscillator();
         lfo2.type = 'sine';
-        lfo2.frequency.value = 0.3;
-        const lfoG = ctx.createGain();
-        lfoG.gain.value = 8;
+        lfo2.frequency.value = 0.4;
+        var lfoG = ctx.createGain();
+        lfoG.gain.value = 10;
         lfo2.connect(lfoG);
         lfoG.connect(o.frequency);
         lfo2.start(now);
 
-        const g = ctx.createGain();
+        var g = ctx.createGain();
         g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(0.12, now + duration * 0.3);
+        g.gain.linearRampToValueAtTime(0.15, now + duration * 0.25);
         g.gain.linearRampToValueAtTime(0, now + duration);
 
         o.connect(g);
@@ -303,122 +304,220 @@
     // =========================================================================
 
     // --- VIGNETTE OVERLAY ---
-    const vignette = document.createElement('div');
-    vignette.id = 'horror-vignette';
-    vignette.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(vignette);
+    var vignette = null;
+
+    function createVignette() {
+        vignette = document.createElement('div');
+        vignette.id = 'horror-vignette';
+        vignette.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(vignette);
+        // Start with a visible base vignette immediately
+        vignette.style.opacity = CONFIG.visual.vignetteBase;
+    }
 
     function setVignetteIntensity(v) {
-        vignette.style.opacity = CONFIG.visual.vignetteMin +
-            v * (CONFIG.visual.vignetteMax - CONFIG.visual.vignetteMin);
+        if (!vignette) return;
+        var val = Math.max(CONFIG.visual.vignetteBase, v);
+        vignette.style.opacity = Math.min(val, CONFIG.visual.vignetteMax);
     }
 
     // --- SCREEN GLITCH ---
     function glitchEffect() {
-        const ov = document.createElement('div');
+        // Create visible scan-line overlay
+        var ov = document.createElement('div');
         ov.className = 'horror-glitch-overlay';
         ov.setAttribute('aria-hidden', 'true');
         document.body.appendChild(ov);
-        setTimeout(() => ov.remove(), CONFIG.visual.flickerDuration);
+
+        // Also shift the page content briefly
+        var main = document.querySelector('main') || document.querySelector('.container');
+        if (main) {
+            var shift = (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 4);
+            main.style.transition = 'none';
+            main.style.transform = 'translateX(' + shift + 'px)';
+            setTimeout(function() {
+                main.style.transform = 'translateX(' + (-shift * 0.5) + 'px)';
+                setTimeout(function() {
+                    main.style.transition = 'transform 0.3s ease';
+                    main.style.transform = '';
+                }, 60);
+            }, 80);
+        }
+
+        // Red tint flash
+        var tint = document.createElement('div');
+        tint.className = 'horror-red-tint';
+        tint.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(tint);
+
+        setTimeout(function() {
+            ov.remove();
+            tint.remove();
+        }, CONFIG.visual.glitchDuration);
     }
 
-    // --- TEXT SCRAMBLE ---
-    const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%&*';
+    // --- TEXT SCRAMBLE (preserves HTML) ---
+    var CHARS = '\u2588\u2593\u2592\u2591\u2580\u2584\u258C\u2590ABCDEFXYZabcdefxyz!@#$%&*01';
 
     function scrambleText(el) {
         if (el.dataset.scrambled) return;
         el.dataset.scrambled = '1';
 
-        const orig = el.textContent;
-        const dur = CONFIG.visual.scrambleDuration;
-        const t0 = performance.now();
+        // Store original HTML and work with text nodes only
+        var originalHTML = el.innerHTML;
+        var textNodes = [];
+        var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+        var node;
+        while (node = walker.nextNode()) {
+            if (node.textContent.trim().length > 0) {
+                textNodes.push({ node: node, original: node.textContent });
+            }
+        }
+
+        if (textNodes.length === 0) return;
+
+        var dur = CONFIG.visual.scrambleDuration;
+        var t0 = performance.now();
 
         function tick(now) {
-            const p = Math.min((now - t0) / dur, 1);
-            let out = '';
-            for (let i = 0; i < orig.length; i++) {
-                if (orig[i] === ' ' || orig[i] === '\n') { out += orig[i]; continue; }
-                out += (i / orig.length < p) ? orig[i] : CHARS[Math.floor(Math.random() * CHARS.length)];
+            var p = Math.min((now - t0) / dur, 1);
+            for (var i = 0; i < textNodes.length; i++) {
+                var tn = textNodes[i];
+                var orig = tn.original;
+                var out = '';
+                for (var j = 0; j < orig.length; j++) {
+                    if (orig[j] === ' ' || orig[j] === '\n') {
+                        out += orig[j];
+                    } else if (j / orig.length < p) {
+                        out += orig[j];
+                    } else {
+                        out += CHARS[Math.floor(Math.random() * CHARS.length)];
+                    }
+                }
+                tn.node.textContent = out;
             }
-            el.textContent = out;
-            if (p < 1) requestAnimationFrame(tick);
-            else el.textContent = orig;
+            if (p < 1) {
+                requestAnimationFrame(tick);
+            } else {
+                // Restore originals
+                for (var k = 0; k < textNodes.length; k++) {
+                    textNodes[k].node.textContent = textNodes[k].original;
+                }
+            }
         }
         requestAnimationFrame(tick);
     }
 
     // --- SCREEN FLICKER ---
     function screenFlicker() {
-        document.body.classList.add('horror-flicker');
-        setTimeout(() => document.body.classList.remove('horror-flicker'), 80);
-        setTimeout(() => {
+        var count = CONFIG.visual.flickerCount;
+        var i = 0;
+        function flash() {
+            if (i >= count) return;
             document.body.classList.add('horror-flicker');
-            setTimeout(() => document.body.classList.remove('horror-flicker'), 40);
-        }, 160);
+            var dur = 40 + Math.random() * 60;
+            setTimeout(function() {
+                document.body.classList.remove('horror-flicker');
+                i++;
+                if (i < count) {
+                    setTimeout(flash, 30 + Math.random() * 80);
+                }
+            }, dur);
+        }
+        flash();
     }
 
-    // --- TEXT BLEED (red shadow that fades in/out on horror paragraphs) ---
+    // --- TEXT BLEED ---
     function textBleed(el) {
         el.classList.add('horror-text-bleed');
-        setTimeout(() => el.classList.remove('horror-text-bleed'), 3000);
+        setTimeout(function() { el.classList.remove('horror-text-bleed'); }, 4000);
+    }
+
+    // --- COLOR SHIFT (brief red/blue color wash) ---
+    function colorShift() {
+        var wash = document.createElement('div');
+        wash.className = 'horror-color-wash';
+        wash.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(wash);
+        // Trigger animation
+        requestAnimationFrame(function() { wash.style.opacity = '1'; });
+        setTimeout(function() {
+            wash.style.opacity = '0';
+            setTimeout(function() { wash.remove(); }, 600);
+        }, 400);
     }
 
     // =========================================================================
     // INTERACTIVE ELEMENTS
     // =========================================================================
 
-    // --- WHISPER TEXT (hidden messages revealed on hover) ---
+    // --- WHISPER TEXT ---
     function setupWhisperText() {
-        document.querySelectorAll('.horror-whisper').forEach(el => {
-            el.addEventListener('mouseenter', () => {
-                el.classList.add('horror-whisper-visible');
-                if (ready) playWhisper();
-            });
-            el.addEventListener('mouseleave', () => {
-                el.classList.remove('horror-whisper-visible');
-            });
-        });
+        var whispers = document.querySelectorAll('.horror-whisper');
+        for (var i = 0; i < whispers.length; i++) {
+            (function(el) {
+                el.addEventListener('mouseenter', function() {
+                    el.classList.add('horror-whisper-visible');
+                    if (ready) playWhisper();
+                });
+                el.addEventListener('mouseleave', function() {
+                    el.classList.remove('horror-whisper-visible');
+                });
+            })(whispers[i]);
+        }
     }
 
     // --- CURSOR TRAIL ---
-    let cursorTrailOn = false;
+    var cursorTrailOn = false;
 
     function setupCursorTrail() {
         if ('ontouchstart' in window) return;
 
-        let lastX = 0, lastY = 0;
-        document.addEventListener('mousemove', (e) => {
+        var lastX = 0, lastY = 0;
+        document.addEventListener('mousemove', function(e) {
             if (!cursorTrailOn) return;
-            // Throttle: only spawn dot if moved enough
-            const dx = e.clientX - lastX, dy = e.clientY - lastY;
-            if (dx * dx + dy * dy < 100) return;
+            var dx = e.clientX - lastX, dy = e.clientY - lastY;
+            if (dx * dx + dy * dy < 80) return;
             lastX = e.clientX;
             lastY = e.clientY;
 
-            const dot = document.createElement('div');
+            var dot = document.createElement('div');
             dot.className = 'horror-cursor-dot';
             dot.style.left = e.clientX + 'px';
             dot.style.top = e.clientY + 'px';
             dot.setAttribute('aria-hidden', 'true');
             document.body.appendChild(dot);
-            setTimeout(() => dot.remove(), 1200);
+            setTimeout(function() { dot.remove(); }, 1500);
         });
     }
 
-    // --- HORROR TRIGGER ZONES (IntersectionObserver) ---
+    // --- HORROR TRIGGER ZONES ---
     function setupScrollTriggers() {
-        const triggers = document.querySelectorAll('.horror-trigger');
+        var triggers = document.querySelectorAll('.horror-trigger');
         if (!triggers.length) return;
 
-        const obs = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (!entry.isIntersecting) return;
-                const el = entry.target;
-                if (el.dataset.horrorFired) return;
-                el.dataset.horrorFired = '1';
+        var obs = new IntersectionObserver(function(entries) {
+            for (var idx = 0; idx < entries.length; idx++) {
+                var entry = entries[idx];
+                if (!entry.isIntersecting) continue;
 
-                const fx = el.dataset.horror;
-                if (!fx) return;
+                var el = entry.target;
+                // Allow re-firing for some effects, one-shot for others
+                var fx = el.dataset.horror;
+                if (!fx) continue;
+
+                // One-shot effects: check if already fired
+                var oneShot = (fx === 'scramble' || fx === 'intensify' || fx === 'calm');
+                if (oneShot && el.dataset.horrorFired) continue;
+                if (oneShot) el.dataset.horrorFired = '1';
+
+                // Rate-limit re-firable effects
+                if (!oneShot) {
+                    var now = Date.now();
+                    var lastFired = parseInt(el.dataset.horrorLast || '0', 10);
+                    if (now - lastFired < 5000) continue; // 5 sec cooldown
+                    el.dataset.horrorLast = String(now);
+                }
 
                 switch (fx) {
                     case 'scramble':
@@ -430,61 +529,87 @@
                         break;
                     case 'heartbeat':
                         if (ready) playHeartbeat();
-                        setVignetteIntensity(0.6);
-                        setTimeout(() => setVignetteIntensity(scrollIntensity * 0.3), 4000);
+                        pulseVignette(0.65, 4000);
                         break;
                     case 'flicker':
                         screenFlicker();
+                        colorShift();
                         break;
                     case 'intensify':
-                        setDroneIntensity(0.8);
+                        setDroneIntensity(0.9);
                         cursorTrailOn = true;
-                        setVignetteIntensity(0.45);
+                        setVignetteIntensity(0.5);
                         break;
                     case 'calm':
-                        setDroneIntensity(0.15);
+                        setDroneIntensity(0.1);
                         cursorTrailOn = false;
-                        setVignetteIntensity(0.05);
+                        setVignetteIntensity(CONFIG.visual.vignetteBase);
                         break;
                     case 'whisper-burst':
                         if (ready) {
                             playWhisper();
-                            setTimeout(playWhisper, 400);
-                            setTimeout(playWhisper, 900);
+                            setTimeout(playWhisper, 300);
+                            setTimeout(playWhisper, 700);
                         }
+                        pulseVignette(0.4, 2000);
                         break;
                     case 'rumble':
                         if (ready) playRumble(4);
-                        setVignetteIntensity(0.5);
-                        setTimeout(() => setVignetteIntensity(scrollIntensity * 0.3), 4500);
+                        glitchEffect();
+                        pulseVignette(0.55, 4500);
                         break;
                     case 'bleed':
                         textBleed(el);
+                        if (ready) playWhisper();
                         break;
                 }
-            });
-        }, { threshold: 0.35 });
+            }
+        }, { threshold: 0.15 }); // lower threshold — fires sooner
 
-        triggers.forEach(t => obs.observe(t));
+        for (var t = 0; t < triggers.length; t++) {
+            obs.observe(triggers[t]);
+        }
+    }
+
+    // Helper: pulse vignette then return to base
+    function pulseVignette(intensity, duration) {
+        setVignetteIntensity(intensity);
+        setTimeout(function() {
+            setVignetteIntensity(CONFIG.visual.vignetteBase + scrollIntensity * 0.2);
+        }, duration);
     }
 
     // --- RANDOM AMBIENT EVENTS ---
     function scheduleAmbientEvent() {
-        const delay = CONFIG.timing.ambientRange[0] +
+        var delay = CONFIG.timing.ambientRange[0] +
             Math.random() * (CONFIG.timing.ambientRange[1] - CONFIG.timing.ambientRange[0]);
 
-        setTimeout(() => {
+        setTimeout(function() {
             if (!document.hidden) {
-                const r = Math.random();
-                if (r < 0.25) screenFlicker();
-                else if (r < 0.45) glitchEffect();
-                else if (r < 0.65) {
-                    setVignetteIntensity(0.5);
-                    setTimeout(() => setVignetteIntensity(scrollIntensity * 0.3), 1000);
+                var r = Math.random();
+                if (r < 0.20) {
+                    // Screen flicker
+                    screenFlicker();
+                } else if (r < 0.38) {
+                    // Glitch
+                    glitchEffect();
+                } else if (r < 0.52) {
+                    // Vignette pulse
+                    pulseVignette(0.55, 1500);
+                } else if (r < 0.65) {
+                    // Color wash
+                    colorShift();
                 } else if (r < 0.80 && ready) {
+                    // Whisper
                     playWhisper();
+                } else if (r < 0.90) {
+                    // Brief text shadow on a random paragraph
+                    var ps = document.querySelectorAll('article p, .container p');
+                    if (ps.length > 0) {
+                        textBleed(ps[Math.floor(Math.random() * ps.length)]);
+                    }
                 }
-                // 20% chance: nothing (silence is its own horror)
+                // 10% chance: nothing
             }
             scheduleAmbientEvent();
         }, delay);
@@ -493,21 +618,21 @@
     // =========================================================================
     // SCROLL-BASED INTENSITY
     // =========================================================================
-    let scrollIntensity = 0;
+    var scrollIntensity = 0;
 
     function updateScrollIntensity() {
-        const total = document.documentElement.scrollHeight - window.innerHeight;
+        var total = document.documentElement.scrollHeight - window.innerHeight;
         if (total <= 0) return;
-        const pct = window.scrollY / total;
+        var pct = window.scrollY / total;
         scrollIntensity = Math.min(pct * 1.4, 1);
-        setVignetteIntensity(scrollIntensity * 0.25);
-        setDroneIntensity(scrollIntensity * 0.4);
+        setVignetteIntensity(CONFIG.visual.vignetteBase + scrollIntensity * 0.2);
+        setDroneIntensity(scrollIntensity * 0.5);
     }
 
-    let sTicking = false;
-    window.addEventListener('scroll', () => {
+    var sTicking = false;
+    window.addEventListener('scroll', function() {
         if (!sTicking) {
-            requestAnimationFrame(() => { updateScrollIntensity(); sTicking = false; });
+            requestAnimationFrame(function() { updateScrollIntensity(); sTicking = false; });
             sTicking = true;
         }
     }, { passive: true });
@@ -516,7 +641,7 @@
     // AUDIO CLICK-TO-START OVERLAY
     // =========================================================================
     function createAudioPrompt() {
-        const prompt = document.createElement('div');
+        var prompt = document.createElement('div');
         prompt.id = 'horror-audio-prompt';
         prompt.setAttribute('aria-label', 'Enable audio for immersive experience');
         prompt.innerHTML = '<div class="horror-audio-prompt-inner">' +
@@ -526,42 +651,72 @@
             '</div>';
         document.body.appendChild(prompt);
 
-        // Fade in
-        requestAnimationFrame(() => { prompt.style.opacity = '1'; });
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() { prompt.style.opacity = '1'; });
+        });
 
         function dismiss() {
             initAudio();
             prompt.style.opacity = '0';
-            setTimeout(() => prompt.remove(), 800);
+            setTimeout(function() { if (prompt.parentNode) prompt.remove(); }, 800);
             document.removeEventListener('click', dismiss);
             document.removeEventListener('keydown', dismiss);
+            document.removeEventListener('touchstart', dismiss);
         }
 
-        // Also auto-dismiss after 6 seconds if user just scrolls
         document.addEventListener('click', dismiss);
         document.addEventListener('keydown', dismiss);
-        setTimeout(() => {
+        document.addEventListener('touchstart', dismiss);
+
+        // Also init audio on scroll
+        document.addEventListener('scroll', function scrollInit() {
+            initAudio();
+            document.removeEventListener('scroll', scrollInit);
+        });
+
+        // Auto-dismiss prompt after 10 seconds
+        setTimeout(function() {
             if (prompt.parentNode) {
                 prompt.style.opacity = '0';
-                setTimeout(() => { if (prompt.parentNode) prompt.remove(); }, 800);
+                setTimeout(function() { if (prompt.parentNode) prompt.remove(); }, 800);
             }
-        }, 8000);
+        }, 10000);
+    }
 
-        // Also init audio on scroll (in case they never click the prompt)
-        document.addEventListener('scroll', () => { initAudio(); }, { once: true });
+    // =========================================================================
+    // ON-LOAD EFFECTS — immediate visual impact
+    // =========================================================================
+    function onLoadEffects() {
+        // Brief vignette surge
+        setVignetteIntensity(0.45);
+        setTimeout(function() {
+            setVignetteIntensity(CONFIG.visual.vignetteBase);
+        }, 2000);
+
+        // Delayed first flicker
+        setTimeout(function() {
+            screenFlicker();
+        }, CONFIG.timing.onLoadDelay);
+
+        // Delayed glitch
+        setTimeout(function() {
+            glitchEffect();
+        }, CONFIG.timing.onLoadDelay + 3000);
     }
 
     // =========================================================================
     // INITIALIZATION
     // =========================================================================
     function init() {
+        createVignette();
         setupWhisperText();
         setupCursorTrail();
         setupScrollTriggers();
         scheduleAmbientEvent();
+        onLoadEffects();
 
-        // Show audio prompt after short delay so page loads first
-        setTimeout(createAudioPrompt, 1500);
+        // Show audio prompt after short delay
+        setTimeout(createAudioPrompt, 1200);
     }
 
     if (document.readyState === 'loading') {
@@ -580,6 +735,7 @@
         flicker: screenFlicker,
         scramble: scrambleText,
         bleed: textBleed,
+        colorShift: colorShift,
         setDroneIntensity: setDroneIntensity,
         setVignetteIntensity: setVignetteIntensity,
         enableTrail: function () { cursorTrailOn = true; },
