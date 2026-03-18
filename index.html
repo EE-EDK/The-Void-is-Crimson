@@ -61,93 +61,101 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
+            align-items: center; /* Center horizontally by default */
             min-height: 100vh;
             text-align: center;
+            padding: 0 5%;
         }
 
         .title {
-            font-size: clamp(2rem, 6vw, 4rem);
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
             font-weight: 300;
             color: #ffffff;
-            letter-spacing: 0.2em;
-            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5), 0 0 20px rgba(255, 0, 0, 0.4);
-            animation: pulse 5s infinite ease-in-out;
-            margin-bottom: 1rem;
+            letter-spacing: 0.25em;
+            /* Combined pulse and tendril animations */
+            animation: pulse 5s infinite ease-in-out, tendrils 12s infinite linear;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes tendrils {
+            0%, 90% { text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+            95% { text-shadow: 10px 10px 40px rgba(0, 0, 0, 0.9), -10px -10px 40px rgba(139, 0, 0, 0.7), 5px -15px 50px rgba(0, 0, 0, 1); }
+            100% { text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+        }
+
+        .index-tagline {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 4px;
+            margin-bottom: 3rem;
+            text-transform: lowercase;
+            z-index: 2;
         }
 
         .acts-navigation {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.5rem;
+            position: fixed;
+            right: 5%;
+            top: 50%;
+            transform: translateY(-50%);
+            align-items: flex-end;
+            z-index: 3;
         }
 
         .act-link {
-            font-size: clamp(1.1rem, 3.5vw, 1.6rem);
+            font-size: clamp(1rem, 3vw, 1.4rem);
             font-weight: 400;
-            color: #8b0000;
+            color: rgba(255, 150, 150, 0.8);
             text-decoration: none;
-            border: 1px solid #4d0000;
-            padding: 0.5rem 1.5rem;
-            transition: all 0.4s ease;
+            border: 1px solid rgba(139, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            padding: 0.75rem 2rem;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
+            text-align: right;
+            width: fit-content;
         }
 
         .act-link:hover {
             color: #ffffff;
-            background-color: #8b0000;
-            border-color: #ff0000;
-            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6), 0 0 25px rgba(255, 0, 0, 0.4);
-            transform: scale(1.05);
-        }
-
-        .act-link::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 300%;
-            height: 300%;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            transition: transform 0.6s ease;
-        }
-
-        .act-link:hover::before {
-            transform: translate(-50%, -50%) scale(1);
+            background-color: rgba(139, 0, 0, 0.4);
+            border-color: #ff4444;
+            box-shadow: -5px 0 20px rgba(255, 0, 0, 0.3);
+            transform: translateX(-10px);
         }
 
         .act-link::after {
             content: attr(data-subtitle);
             display: block;
-            font-size: 0.5em;
-            color: rgba(139, 0, 0, 0);
+            font-size: 0.55em;
+            color: rgba(255, 255, 255, 0);
             letter-spacing: 2px;
-            margin-top: 2px;
+            margin-top: 4px;
             transition: color 0.8s ease;
             font-style: italic;
         }
 
         .act-link:hover::after {
-            color: rgba(255, 100, 100, 0.6);
-        }
-
-        .index-tagline {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(0.8rem, 2vw, 1rem);
-            color: rgba(200, 200, 200, 0.5);
-            letter-spacing: 3px;
-            margin-bottom: 2rem;
-            text-transform: lowercase;
+            color: rgba(255, 255, 255, 0.5);
         }
 
         .index-warning {
-            font-size: 0.7rem;
-            color: rgba(139, 0, 0, 0.4);
+            font-size: 0.75rem;
+            color: rgba(255, 100, 100, 0.4);
             letter-spacing: 2px;
-            margin-top: 2rem;
+            position: fixed;
+            bottom: 2rem;
+            width: 100%;
+            left: 0;
+            text-align: center;
+            z-index: 2;
             animation: warning-pulse 4s ease-in-out infinite;
         }
 
