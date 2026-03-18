@@ -246,7 +246,13 @@
                     col = mix(col, col * 0.4, mask1);
                     col = mix(col, col * 0.2, mask2);
                     col = mix(col, vec3(0.0), mask3); // Absolute void center
-                    
+
+                    // Counter-rotating luminous threads — light from the impossible
+                    vec2 lightUv = uv * rot(u_time * 1.5 + coreSwirl);
+                    float lightLayer = fbm(lightUv * 3.0 - u_time * 0.12);
+                    float lightMask = smoothstep(0.45, 0.15, dist) * smoothstep(0.05, 0.15, dist);
+                    col += u_themeColor * lightLayer * lightMask * 0.35;
+
                     // Glowing inner rim (Smoother transition)
                     float rim = smoothstep(0.5, 0.4, dist) * smoothstep(0.3, 0.4, dist);
                     col += u_themeColor * rim * 1.5 * (0.8 + layer1 * 0.4);
@@ -256,6 +262,16 @@
                     if (dist < 0.6) {
                         col -= vec3(leak * 0.3);
                     }
+
+                    // Tendrils — the void reaching beyond its boundary
+                    float tendrilAngle = atan(uv.y, uv.x);
+                    float angleNorm = tendrilAngle / 6.2832 + 0.5;
+                    float tendrilNoise = fbm(vec2(angleNorm * 4.0 + u_time * 0.08, dist * 2.0 - u_time * 0.15));
+                    float tendrilShape = pow(tendrilNoise, 3.0);
+                    float tendrilReach = noise(vec2(angleNorm * 6.0 - u_time * 0.05, 0.5));
+                    float tendrilOuter = 0.7 + tendrilReach * 0.5;
+                    float tendrilMask = smoothstep(0.45, 0.55, dist) * smoothstep(tendrilOuter, 0.55, dist);
+                    col += u_themeColor * tendrilShape * tendrilMask * 0.7;
                 }
 
                 // NEURAL FLUID WEAVE
