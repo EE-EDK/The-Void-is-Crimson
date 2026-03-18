@@ -74,15 +74,9 @@
             font-weight: 300;
             color: #ffffff;
             letter-spacing: 0.25em;
-            animation: title-fade 5s infinite ease-in-out;
             margin-bottom: 0.5rem;
             position: relative;
             z-index: 10; /* High z-index */
-        }
-
-        @keyframes title-fade {
-            0%, 100% { opacity: 0.9; }
-            50% { opacity: 1; }
         }
 
         .void-word {
@@ -95,31 +89,29 @@
         }
 
         @keyframes tendrils {
-            0%, 5% { 
-                text-shadow: 0 0 10px rgba(255, 0, 0, 0.8); 
-                transform: scale(1);
+            0%, 100% {
+                text-shadow: 0 0 5px rgba(0, 0, 0, 0.6);
             }
-            60% { 
-                /* Reaching out with visible Crimson and Red */
-                text-shadow: 
-                    25px 25px 40px rgba(139, 0, 0, 0.9), 
-                    -20px -20px 35px rgba(255, 0, 0, 0.6),
-                    10px -35px 50px rgba(139, 0, 0, 0.8),
-                    -35px 15px 60px rgba(0, 0, 0, 1);
-                transform: scale(1.03);
+            25% {
+                text-shadow:
+                    8px 15px 20px rgba(0, 0, 0, 0.7),
+                    -12px 8px 25px rgba(0, 0, 0, 0.5),
+                    5px -18px 30px rgba(0, 0, 0, 0.4);
             }
-            80% {
-                /* Peak extension - Very bright red tips */
-                text-shadow: 
-                    50px 50px 70px rgba(139, 0, 0, 1), 
-                    -40px -35px 60px rgba(255, 50, 50, 0.8),
-                    20px -60px 80px rgba(139, 0, 0, 0.9),
-                    -60px 30px 100px rgba(0, 0, 0, 1);
-                transform: scale(1.06);
+            50% {
+                text-shadow:
+                    20px 30px 40px rgba(0, 0, 0, 0.8),
+                    -25px -15px 35px rgba(0, 0, 0, 0.6),
+                    -10px 25px 50px rgba(0, 0, 0, 0.7),
+                    15px -30px 45px rgba(0, 0, 0, 0.5);
             }
-            85%, 100% { 
-                text-shadow: 0 0 10px rgba(255, 0, 0, 0.8); 
-                transform: scale(1);
+            75% {
+                text-shadow:
+                    35px 20px 55px rgba(0, 0, 0, 0.9),
+                    -30px -25px 50px rgba(0, 0, 0, 0.7),
+                    -15px 35px 65px rgba(0, 0, 0, 0.8),
+                    25px -40px 60px rgba(0, 0, 0, 0.6),
+                    -40px 10px 70px rgba(0, 0, 0, 0.5);
             }
         }
 
@@ -216,6 +208,64 @@
 
         .skip-to-content:focus {
             top: 0;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            body {
+                overflow-y: auto;
+            }
+
+            .title {
+                letter-spacing: 0.1em;
+            }
+
+            .index-tagline {
+                letter-spacing: 2px;
+                margin-bottom: 1.5rem;
+            }
+
+            .acts-navigation {
+                position: static;
+                transform: none;
+                align-items: center;
+                gap: 1rem;
+                margin-top: 1rem;
+            }
+
+            .act-link {
+                padding: 0.5rem 1.25rem;
+                text-align: center;
+            }
+
+            .act-link:hover {
+                transform: none;
+            }
+
+            .index-warning {
+                position: static;
+                margin-top: 2rem;
+            }
+
+            .void-word {
+                animation-duration: 10s !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title {
+                letter-spacing: 0.05em;
+            }
+
+            .index-tagline {
+                letter-spacing: 1px;
+                margin-bottom: 1rem;
+            }
+
+            .act-link {
+                padding: 0.4rem 1rem;
+                font-size: 0.9rem;
+            }
         }
     </style>
 
