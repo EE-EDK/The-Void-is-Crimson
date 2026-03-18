@@ -182,19 +182,17 @@
 
                 // 1. THE VORTEX / CHASM (Main Page Special)
                 if (u_isMainPage > 0.5) {
-                    // Reverted to normal slow speed
-                    float swirl = 4.5 * exp(-dist * 1.2);
-                    uv *= rot(u_time * 0.25 + swirl);
+                    float swirl = 5.2 * exp(-dist * 1.6);
+                    uv *= rot(u_time * 0.3 + swirl);
                 }
 
                 // 2. THE EVENT HORIZON (Peripheral Refraction)
-                float bend = smoothstep(0.2, 1.5, dist) * (0.15 + u_tension * 0.45);
+                float bend = smoothstep(0.4, 2.35, dist) * (0.28 + u_tension * 0.81);
                 vec2 refractedUv = uv + normalize(uv) * bend * fbm(uv * 1.5 + u_time * 0.1);
 
-                // 3. NEBULA & STARFIELD LAYER — photorealistic deep space
+                // 3. NEBULA & STARFIELD LAYER
                 float n = fbm(refractedUv * 0.8 + u_time * 0.05);
 
-                // Multi-population starfield with varied sizes and color temperatures
                 vec3 starCol = vec3(0.0);
 
                 // Population A: Bright foreground stars (sparse, large)
@@ -202,16 +200,13 @@
                 float starSeedA = hash(starGridA);
                 float starBrightA = pow(starSeedA, 40.0);
                 vec2 starCellA = fract(refractedUv * 40.0) - 0.5;
-                // Jitter star position within cell
                 vec2 starOffA = vec2(hash(starGridA + 0.1), hash(starGridA + 0.2)) - 0.5;
                 float starDistA = length(starCellA - starOffA * 0.6);
                 float starA = smoothstep(0.06, 0.01, starDistA) * starBrightA;
-                // Color temperature from seed: hot blue-white to warm amber
                 float tempA = hash(starGridA + 7.0);
                 vec3 starTintA = mix(vec3(0.7, 0.8, 1.0), vec3(1.0, 0.85, 0.6), tempA);
-                // Subtle twinkle
                 starA *= 0.7 + 0.3 * sin(u_time * (2.0 + starSeedA * 4.0) + starSeedA * 6.28);
-                starCol += starTintA * starA * 1.2;
+                starCol += starTintA * starA * 3.0;
 
                 // Population B: Medium field stars
                 vec2 starGridB = floor(refractedUv * 90.0);
@@ -223,19 +218,19 @@
                 float starB = smoothstep(0.04, 0.005, starDistB) * starBrightB;
                 float tempB = hash(starGridB + 5.0);
                 vec3 starTintB = mix(vec3(0.8, 0.85, 1.0), vec3(1.0, 0.9, 0.75), tempB);
-                starCol += starTintB * starB * 0.7;
+                starCol += starTintB * starB * 2.0;
 
                 // Population C: Dense dim background stars (tiny, numerous)
                 vec2 starGridC = floor(refractedUv * 200.0);
                 float starSeedC = hash(starGridC);
-                float starBrightC = pow(starSeedC, 30.0) * 0.5;
+                float starBrightC = pow(starSeedC, 30.0) * 0.2;
                 starCol += vec3(0.9, 0.9, 1.0) * starBrightC;
 
-                // Cluster stars in nebula-dense regions — not everywhere
+                // Cluster stars in nebula-dense regions
                 float starDensity = fbm(refractedUv * 2.0);
-                starCol *= 0.3 + starDensity * 0.9;
+                starCol *= 0.5 + starDensity * 0.9;
 
-                float stars = (starCol.r + starCol.g + starCol.b) / 3.0; // scalar fallback for legacy use
+                float stars = (starCol.r + starCol.g + starCol.b) / 3.0;
 
                 // 4. REALITY DISPLACEMENT (Domain Warping)
                 vec2 q = vec2(0.0);
@@ -243,132 +238,127 @@
                 q.y = fbm(refractedUv + vec2(1.0));
 
                 vec2 r = vec2(0.0);
-                r.x = fbm(refractedUv + 1.0 * q + vec2(1.7, 9.2) + 0.15 * u_time);
+                r.x = fbm(refractedUv + 1.0 * q + vec2(1.7, 9.2) + 0.32 * u_time);
                 r.y = fbm(refractedUv + 1.0 * q + vec2(8.3, 2.8) + 0.126 * u_time);
 
-                float fluidNoise = fbm(refractedUv + r * (2.0 + u_tension * 2.5) - vec2(0.0, u_scroll * 2.5));
+                float fluidNoise = fbm(refractedUv + r * (4.4 + u_tension * 2.5) - vec2(0.0, u_scroll * 2.5));
 
                 // 5. ABYSSAL VOLUMETRICS
                 float safeZone = 1.0 - smoothstep(0.1, 1.3, dist);
-                if (u_isMainPage > 0.5) safeZone *= 0.7; // Darker center on main page
-                
+                if (u_isMainPage > 0.5) safeZone *= 0.7;
+
                 float density = (1.0 - safeZone) * (0.6 + u_tension * 0.4);
-                
-                // Theme mixing — restrained base so stars and structure show through
+
                 vec3 baseColor = u_themeColor * 0.4;
-                float vortexFalloff = smoothstep(1.8, 0.3, dist); // concentrate color near center
+                float vortexFalloff = smoothstep(3.2, 0.31, dist);
                 vec3 col = mix(baseColor * 0.05, u_themeColor * 1.2, fluidNoise * vortexFalloff);
-                
-                // Add Nebula color — scaled by vortex proximity
-                col += u_themeColor * n * 0.2 * vortexFalloff;
-                // Deep space dust clouds — subtle color variation in the background
+
+                // Nebula color
+                col += u_themeColor * n * 0.4 * vortexFalloff;
+                // Deep space dust clouds
                 float dust1 = fbm(refractedUv * 1.2 + vec2(u_time * 0.02, 0.0));
                 float dust2 = fbm(refractedUv * 1.8 - vec2(0.0, u_time * 0.015));
-                col += vec3(0.15, 0.02, 0.04) * dust1 * 0.25; // warm dust lane
-                col += vec3(0.02, 0.03, 0.08) * dust2 * 0.2;  // cool distant nebulosity
-                // Stars punch through — brighter where vortex is dimmer
-                float starVisibility = 0.8 + 1.0 * (1.0 - vortexFalloff);
+                col += vec3(0.15, 0.02, 0.04) * dust1 * 0.52;
+                col += vec3(0.02, 0.03, 0.08) * dust2 * 0.33;
+                // Stars punch through
+                float starVisibility = 1.3 + 1.0 * (1.0 - vortexFalloff);
                 col += starCol * starVisibility;
 
-                // Rotating Accretion Disk — multi-layer photorealistic structure
+                // Rotating Accretion Disk
                 float angle = atan(uv.y, uv.x);
 
-                // Primary ray structure — broad sweeping arms, concentrated near center
-                float rays = noise(vec2(angle * 4.0 + u_time * 0.2, dist * 0.4)) * 0.5 + 0.5;
+                // Primary ray structure
+                float rays = noise(vec2(angle * 6.0 + u_time * 0.79, dist * 0.4)) * 0.5 + 0.5;
                 float clumps = noise(vec2(angle * 12.0 + u_time * 0.04, dist * 3.0)) * 0.6 + 0.4;
-                col += u_themeColor * rays * density * 0.4 * vortexFalloff * clumps;
+                col += u_themeColor * rays * density * 0.73 * vortexFalloff * clumps;
 
-                // Filamentary gas streams — ridged noise creates thin bright veins
-                float ridged1 = 1.0 - abs(noise(vec2(angle * 8.0 + u_time * 0.15, dist * 1.5 - u_time * 0.08)) * 2.0 - 1.0);
-                ridged1 = pow(ridged1, 3.0); // sharpen into filaments
+                // Filamentary gas streams
+                float ridged1 = 1.0 - abs(noise(vec2(angle * 17.0 + u_time * 0.15, dist * 1.5 - u_time * 0.08)) * 2.0 - 1.0);
+                ridged1 = pow(ridged1, 3.0);
                 float filamentMask = smoothstep(0.3, 0.6, dist) * smoothstep(1.4, 0.7, dist);
                 float filamentClump = noise(vec2(angle * 7.0 - u_time * 0.03, dist * 2.0));
                 filamentClump = smoothstep(0.25, 0.6, filamentClump);
-                col += vec3(1.0, 0.3, 0.1) * ridged1 * filamentMask * 0.15 * filamentClump;
+                col += vec3(1.0, 0.3, 0.1) * ridged1 * filamentMask * 0.34 * filamentClump;
 
-                // Secondary spiral arm — counter-wound for depth
-                float arm2 = noise(vec2(angle * 6.0 - u_time * 0.12, dist * 0.8 + u_time * 0.05));
+                // Secondary spiral arm
+                float arm2 = noise(vec2(angle * 10.5 - u_time * 0.32, dist * 0.8 + u_time * 0.05));
                 arm2 = smoothstep(0.4, 0.7, arm2);
-                col += u_themeColor * arm2 * density * 0.15 * vortexFalloff;
+                col += u_themeColor * arm2 * density * 0.39 * vortexFalloff;
 
-                // Hot inner accretion glow — orange/white gradient near the disc center
-                float innerHeat = smoothstep(0.8, 0.35, dist) * smoothstep(0.15, 0.35, dist);
+                // Hot inner accretion glow
+                float innerHeat = smoothstep(0.8, 0.67, dist) * smoothstep(0.47, 0.67, dist);
                 float heatNoise = noise(vec2(angle * 5.0 + u_time * 0.3, dist * 2.0));
                 vec3 hotColor = mix(vec3(0.6, 0.1, 0.0), vec3(1.0, 0.6, 0.2), heatNoise);
-                col += hotColor * innerHeat * density * 0.2;
+                col += hotColor * innerHeat * density * 0.65;
 
-                // Fine turbulent detail — high-frequency noise at the gas scale
+                // Fine turbulent detail
                 float turbulence = noise(uv * rot(u_time * 0.08) * 8.0 + r * 2.0);
                 turbulence *= noise(uv * rot(-u_time * 0.06) * 14.0);
                 float turbMask = smoothstep(0.2, 0.7, dist) * smoothstep(1.5, 0.7, dist);
-                col += u_themeColor * turbulence * turbMask * 0.2;
+                col += u_themeColor * turbulence * turbMask * 0.51;
 
                 // 6. THE CHASM CORE (Visualizing the Hole)
                 if (u_isMainPage > 0.5) {
-                    // Maintained aggressive rotation for the inner core only
-                    float coreSwirl = 3.5 * exp(-dist * 2.5);
+                    float coreSwirl = 8.0 * exp(-dist * 5.7);
                     vec2 coreUv = uv * rot(-u_time * 2.0 - coreSwirl);
-                    
-                    // Multiple dark organic layers
+
                     float layer1 = fbm(coreUv * 2.0 + u_time * 0.1);
                     float layer2 = fbm(coreUv * 4.0 - u_time * 0.15);
                     float layer3 = fbm(coreUv * 8.0 + u_time * 0.2);
-                    
-                    // Organic edges for each layer
-                    float mask1 = smoothstep(0.45 + layer1 * 0.15, 0.35, dist);
-                    float mask2 = smoothstep(0.35 + layer2 * 0.1, 0.25, dist);
-                    float mask3 = smoothstep(0.25 + layer3 * 0.05, 0.1, dist);
-                    
-                    // Blend layers into the core
-                    col = mix(col, col * 0.4, mask1);
-                    col = mix(col, col * 0.2, mask2);
-                    col = mix(col, vec3(0.0), mask3); // Absolute void center
 
-                    // The Watcher — something stirs inside the absolute void
-                    float innerGlow = exp(-dist * dist * 25.0);
-                    float pulse = 0.6 + 0.4 * sin(u_time * 0.3);
-                    col += vec3(0.5, 0.03, 0.0) * innerGlow * pulse * 0.45;
+                    float mask1 = smoothstep(0.37 + layer1 * 0.15, 0.37, dist);
+                    float mask2 = smoothstep(0.52 + layer2 * 0.1, 0.34, dist);
+                    float mask3 = smoothstep(0.42 + layer3 * 0.05, 0.24, dist);
 
-                    // Counter-rotating luminous threads — light from the impossible
-                    vec2 lightUv = uv * rot(u_time * 1.5 + coreSwirl);
-                    float lightLayer = fbm(lightUv * 3.0 - u_time * 0.12);
-                    float lightMask = smoothstep(0.45, 0.15, dist) * smoothstep(0.05, 0.15, dist);
+                    col = mix(col, col * 0.03, mask1);
+                    col = mix(col, col * 0.3, mask2);
+                    col = mix(col, vec3(0.0), mask3);
+
+                    // The Watcher
+                    float innerGlow = exp(-dist * dist * 38.0);
+                    float pulse = 0.6 + 0.4 * sin(u_time * 1.6);
+                    col += vec3(0.53, 0.2, 0.24) * innerGlow * pulse * 1.01;
+
+                    // Counter-rotating luminous threads
+                    vec2 lightUv = uv * rot(u_time * 4.4 + coreSwirl);
+                    float lightLayer = fbm(lightUv * 4.1 - u_time * 0.12);
+                    float lightMask = smoothstep(0.7, 0.16, dist) * smoothstep(0.05, 0.16, dist);
                     col += u_themeColor * lightLayer * lightMask * 0.35;
 
-                    // Glowing inner rim (Smoother transition)
-                    float rim = smoothstep(0.5, 0.4, dist) * smoothstep(0.3, 0.4, dist);
-                    col += u_themeColor * rim * 0.6 * (0.8 + layer1 * 0.4);
+                    // Glowing inner rim
+                    float rim = smoothstep(0.42, 0.32, dist) * smoothstep(0.25, 0.32, dist);
+                    col += u_themeColor * rim * 0.83 * (0.8 + layer1 * 0.4);
 
-                    // Photon ring — thin gravitational lensing at the event horizon
-                    float photonRing = smoothstep(0.30, 0.33, dist) * smoothstep(0.38, 0.35, dist);
+                    // Photon ring
+                    float photonRing = smoothstep(0.33, 0.36, dist) * smoothstep(0.39, 0.35, dist);
                     float ringNoise = noise(vec2(angle * 10.0 + u_time * 0.25, dist * 8.0));
                     photonRing *= 0.7 + ringNoise * 0.3;
                     vec3 ringColor = mix(vec3(1.0, 0.5, 0.1), vec3(1.0, 0.9, 0.7), photonRing);
-                    col += ringColor * photonRing * 0.8;
+                    col += ringColor * photonRing * 1.37;
 
                     // Leaking / Bleeding elements
                     float leak = pow(fbm(uv * rot(u_time * 0.1) * 3.0), 3.0) * density;
                     if (dist < 0.6) {
-                        col -= vec3(leak * 0.3);
+                        col -= vec3(leak * 0.65);
                     }
 
-                    // Tendrils — the void reaching beyond its boundary
+                    // Tendrils
                     float tendrilAngle = atan(uv.y, uv.x);
                     float angleNorm = tendrilAngle / 6.2832 + 0.5;
-                    float tendrilNoise = fbm(vec2(angleNorm * 4.0 + u_time * 0.08, dist * 2.0 - u_time * 0.15));
+                    float tendrilNoise = fbm(vec2(angleNorm * 8.0 + u_time * 0.245, dist * 2.0 - u_time * 0.15));
                     float tendrilShape = pow(tendrilNoise, 3.0);
                     float tendrilReach = noise(vec2(angleNorm * 6.0 - u_time * 0.05, 0.5));
-                    float tendrilOuter = 0.7 + tendrilReach * 0.5;
+                    float tendrilOuter = 1.25 + tendrilReach * 0.5;
                     float tendrilMask = smoothstep(0.45, 0.55, dist) * smoothstep(tendrilOuter, 0.55, dist);
-                    col += u_themeColor * tendrilShape * tendrilMask * 0.45;
+                    col += u_themeColor * tendrilShape * tendrilMask * 0.9;
                 }
 
                 // NEURAL FLUID WEAVE
                 float weave = noise(refractedUv * 12.0 + r * 6.0) * density;
-                col -= vec3(weave * 0.5);
+                col -= vec3(weave * 0.49);
 
-                // TEMPORAL LENS — cinematic horror chromatic aberration
-                float chromaticOffset = dist * dist * (0.03 + u_tension * 0.06);
+                // TEMPORAL LENS — chromatic aberration
+                float chromaticOffset = dist * dist * (0.105 + u_tension * 0.06);
                 float rColor = fbm(refractedUv + vec2(chromaticOffset, 0.0) + r);
                 float gColor = fbm(refractedUv + r);
                 float bColor = fbm(refractedUv - vec2(chromaticOffset, 0.0) + r);
@@ -377,8 +367,9 @@
                 col.b += bColor * 0.2 * density;
 
                 // Final vignette & balance
-                col *= smoothstep(3.0, 0.1, dist * (0.6 + u_tension * 0.4));
-                col += hash(uv * 120.0 + u_time) * 0.05; // Grain
+                col *= smoothstep(4.6, 0.1, dist * (0.6 + u_tension * 0.4));
+                col += hash(uv * 120.0 + u_time) * 0.07;
+                col *= 1.2; // Overall brightness
 
                 gl_FragColor = vec4(col, 1.0);
             }
