@@ -244,7 +244,7 @@
         mod.type = 'sine';
         mod.frequency.value = freq * 0.5;
         var modG = ctx.createGain();
-        modG.gain.value = Math.min(freq * 0.02, 5); // Cap FM depth to prevent instability
+        modG.gain.value = Math.min(freq * 0.005, 2); // Very subtle FM — just enough for organic drift
         mod.connect(modG);
         modG.connect(osc.frequency);
         mod.start();
@@ -422,22 +422,24 @@
         carrier.type = 'triangle';
         carrier.frequency.value = 800 + Math.random() * 400;
 
+        // Sine modulator (not square — square creates harsh harmonics that screech)
         var modulator = ctx.createOscillator();
-        modulator.type = 'square';
-        modulator.frequency.value = carrier.frequency.value * (1.5 + Math.random() * 0.5); 
-        
+        modulator.type = 'sine';
+        modulator.frequency.value = carrier.frequency.value * (1.5 + Math.random() * 0.5);
+
+        // FM depth: 150 max (was 2000 — that created the missile screech)
         var modGain = ctx.createGain();
-        modGain.gain.setValueAtTime(2000, now);
-        modGain.gain.exponentialRampToValueAtTime(10, now + dur);
+        modGain.gain.setValueAtTime(150, now);
+        modGain.gain.exponentialRampToValueAtTime(5, now + dur);
 
         modulator.connect(modGain);
         modGain.connect(carrier.frequency);
 
         var filter = ctx.createBiquadFilter();
         filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(4000, now);
+        filter.frequency.setValueAtTime(2500, now);
         filter.frequency.exponentialRampToValueAtTime(500, now + dur);
-        filter.Q.value = 5;
+        filter.Q.value = 1.5; // Was 5 — high Q creates resonant peaks
 
         var g = ctx.createGain();
         g.gain.setValueAtTime(0, now);
@@ -447,7 +449,6 @@
         carrier.connect(filter);
         filter.connect(g);
         g.connect(effectBus);
-        g.connect(reverbNode);
 
         carrier.start(now);
         modulator.start(now);
@@ -471,11 +472,11 @@
         combDelay.delayTime.exponentialRampToValueAtTime(0.015, now + dur); 
         
         var combFb = ctx.createGain();
-        combFb.gain.value = 0.82; // Lower feedback prevents self-oscillation buildup
-        
+        combFb.gain.value = 0.65; // Well below self-oscillation threshold
+
         var damp = ctx.createBiquadFilter();
         damp.type = 'lowpass';
-        damp.frequency.value = 4000;
+        damp.frequency.value = 2000; // Was 4000 — tighter damping kills high-frequency screech
 
         src.connect(combDelay);
         combDelay.connect(damp);
@@ -508,9 +509,10 @@
         var now = ctx.currentTime;
 
         var baseFreq = 80 + Math.random() * 40;
-        
+
+        // Triangle instead of sawtooth — softer harmonics, less screechy
         var osc = ctx.createOscillator();
-        osc.type = 'sawtooth';
+        osc.type = 'triangle';
         osc.frequency.value = baseFreq;
 
         var mod = ctx.createOscillator();
@@ -518,7 +520,8 @@
         mod.frequency.value = baseFreq * 2.14;
         var modG = ctx.createGain();
         modG.gain.setValueAtTime(0, now);
-        modG.gain.exponentialRampToValueAtTime(400, now + dur - 0.1);
+        // FM depth capped at 60 (was 400 — that created the whistling buildup)
+        modG.gain.linearRampToValueAtTime(60, now + dur - 0.1);
         mod.connect(modG);
         modG.connect(osc.frequency);
 
@@ -530,12 +533,12 @@
         var lp = ctx.createBiquadFilter();
         lp.type = 'lowpass';
         lp.frequency.setValueAtTime(100, now);
-        lp.frequency.exponentialRampToValueAtTime(6000, now + dur - 0.1);
+        // Filter opens to 2500 max (was 6000 — let highs through = screech)
+        lp.frequency.exponentialRampToValueAtTime(2500, now + dur - 0.1);
 
         osc.connect(swellGain);
         swellGain.connect(lp);
         lp.connect(effectBus);
-        lp.connect(reverbNode);
 
         osc.start(now); mod.start(now);
         osc.stop(now + dur); mod.stop(now + dur);
