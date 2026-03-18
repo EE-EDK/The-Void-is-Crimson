@@ -337,14 +337,14 @@
 
                     // Glowing inner rim (Smoother transition)
                     float rim = smoothstep(0.5, 0.4, dist) * smoothstep(0.3, 0.4, dist);
-                    col += u_themeColor * rim * 1.0 * (0.8 + layer1 * 0.4);
+                    col += u_themeColor * rim * 0.6 * (0.8 + layer1 * 0.4);
 
-                    // Photon ring — gravitational lensing at the event horizon
-                    float photonRing = smoothstep(0.40, 0.44, dist) * smoothstep(0.52, 0.48, dist);
+                    // Photon ring — thin gravitational lensing at the event horizon
+                    float photonRing = smoothstep(0.30, 0.33, dist) * smoothstep(0.38, 0.35, dist);
                     float ringNoise = noise(vec2(angle * 10.0 + u_time * 0.25, dist * 8.0));
                     photonRing *= 0.7 + ringNoise * 0.3;
                     vec3 ringColor = mix(vec3(1.0, 0.5, 0.1), vec3(1.0, 0.9, 0.7), photonRing);
-                    col += ringColor * photonRing * 1.5;
+                    col += ringColor * photonRing * 0.8;
 
                     // Leaking / Bleeding elements
                     float leak = pow(fbm(uv * rot(u_time * 0.1) * 3.0), 3.0) * density;
