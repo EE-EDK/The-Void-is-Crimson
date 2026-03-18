@@ -275,13 +275,16 @@
 
                 // Primary ray structure — broad sweeping arms, concentrated near center
                 float rays = noise(vec2(angle * 4.0 + u_time * 0.2, dist * 0.4)) * 0.5 + 0.5;
-                col += u_themeColor * rays * density * 0.4 * vortexFalloff;
+                float clumps = noise(vec2(angle * 12.0 + u_time * 0.04, dist * 3.0)) * 0.6 + 0.4;
+                col += u_themeColor * rays * density * 0.4 * vortexFalloff * clumps;
 
                 // Filamentary gas streams — ridged noise creates thin bright veins
                 float ridged1 = 1.0 - abs(noise(vec2(angle * 8.0 + u_time * 0.15, dist * 1.5 - u_time * 0.08)) * 2.0 - 1.0);
                 ridged1 = pow(ridged1, 3.0); // sharpen into filaments
                 float filamentMask = smoothstep(0.3, 0.6, dist) * smoothstep(1.4, 0.7, dist);
-                col += vec3(1.0, 0.3, 0.1) * ridged1 * filamentMask * 0.15;
+                float filamentClump = noise(vec2(angle * 7.0 - u_time * 0.03, dist * 2.0));
+                filamentClump = smoothstep(0.25, 0.6, filamentClump);
+                col += vec3(1.0, 0.3, 0.1) * ridged1 * filamentMask * 0.15 * filamentClump;
 
                 // Secondary spiral arm — counter-wound for depth
                 float arm2 = noise(vec2(angle * 6.0 - u_time * 0.12, dist * 0.8 + u_time * 0.05));
@@ -321,6 +324,11 @@
                     col = mix(col, col * 0.2, mask2);
                     col = mix(col, vec3(0.0), mask3); // Absolute void center
 
+                    // The Watcher — something stirs inside the absolute void
+                    float innerGlow = exp(-dist * dist * 60.0);
+                    float pulse = 0.6 + 0.4 * sin(u_time * 0.3);
+                    col += vec3(0.4, 0.02, 0.0) * innerGlow * pulse * 0.25;
+
                     // Counter-rotating luminous threads — light from the impossible
                     vec2 lightUv = uv * rot(u_time * 1.5 + coreSwirl);
                     float lightLayer = fbm(lightUv * 3.0 - u_time * 0.12);
@@ -330,7 +338,14 @@
                     // Glowing inner rim (Smoother transition)
                     float rim = smoothstep(0.5, 0.4, dist) * smoothstep(0.3, 0.4, dist);
                     col += u_themeColor * rim * 1.0 * (0.8 + layer1 * 0.4);
-                    
+
+                    // Photon ring — gravitational lensing at the event horizon
+                    float photonRing = smoothstep(0.26, 0.29, dist) * smoothstep(0.34, 0.31, dist);
+                    float ringNoise = noise(vec2(angle * 10.0 + u_time * 0.25, dist * 8.0));
+                    photonRing *= 0.7 + ringNoise * 0.3;
+                    vec3 ringColor = mix(vec3(1.0, 0.5, 0.1), vec3(1.0, 0.9, 0.7), photonRing);
+                    col += ringColor * photonRing * 1.2;
+
                     // Leaking / Bleeding elements
                     float leak = pow(fbm(uv * rot(u_time * 0.1) * 3.0), 3.0) * density;
                     if (dist < 0.6) {
@@ -352,12 +367,14 @@
                 float weave = noise(refractedUv * 12.0 + r * 6.0) * density;
                 col -= vec3(weave * 0.5);
 
-                // TEMPORAL LENS
-                float chromaticOffset = dist * (0.015 + u_tension * 0.04);
+                // TEMPORAL LENS — cinematic horror chromatic aberration
+                float chromaticOffset = dist * dist * (0.03 + u_tension * 0.06);
                 float rColor = fbm(refractedUv + vec2(chromaticOffset, 0.0) + r);
+                float gColor = fbm(refractedUv + r);
                 float bColor = fbm(refractedUv - vec2(chromaticOffset, 0.0) + r);
-                col.r += rColor * 0.15 * density;
-                col.b += bColor * 0.15 * density;
+                col.r += rColor * 0.2 * density;
+                col.g *= 0.97 + gColor * 0.03;
+                col.b += bColor * 0.2 * density;
 
                 // Final vignette & balance
                 col *= smoothstep(3.0, 0.1, dist * (0.6 + u_tension * 0.4));
