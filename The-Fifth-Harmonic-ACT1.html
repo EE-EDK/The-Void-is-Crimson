@@ -835,31 +835,7 @@
         </article>
     </main>
 
-    <script>
-        // WebGL fallback handler
-        window.handleThreeJSLoadError = function() {
-            console.error('Failed to load Three.js from CDN');
-            document.getElementById('three-background').style.display = 'none';
-            document.body.style.backgroundImage = 'radial-gradient(ellipse at center, #1a0a0a 0%, #0a0a0a 100%)';
-        };
-
-        // Check for WebGL support
-        function checkWebGLSupport() {
-            try {
-                const canvas = document.createElement('canvas');
-                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                return !!gl;
-            } catch (e) {
-                return false;
-            }
-        }
-
-        // Initialize only if WebGL is available
-        if (typeof THREE === 'undefined' || !checkWebGLSupport()) {
-            handleThreeJSLoadError();
-        } else {
-            // Three.js code wrapped in this else block
-    </script>
+    
     <script src="./assets/js/visuals-engine.js" defer></script>
     <style>
     /* This class will be added to the body to trigger the fade-out effect */
