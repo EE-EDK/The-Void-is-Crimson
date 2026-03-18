@@ -70,19 +70,37 @@
         .title {
             font-size: clamp(2.5rem, 8vw, 4.5rem);
             font-weight: 300;
-            color: #ffffff;
+            color: rgba(255, 255, 255, 0.9); /* Slight transparency to see 'inside' */
             letter-spacing: 0.25em;
             /* Combined pulse and tendril animations */
-            animation: pulse 5s infinite ease-in-out, tendrils 12s infinite linear;
+            animation: pulse 5s infinite ease-in-out, tendrils 15s infinite ease-in-out;
             margin-bottom: 0.5rem;
             position: relative;
             z-index: 2;
         }
 
         @keyframes tendrils {
-            0%, 90% { text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
-            95% { text-shadow: 10px 10px 40px rgba(0, 0, 0, 0.9), -10px -10px 40px rgba(139, 0, 0, 0.7), 5px -15px 50px rgba(0, 0, 0, 1); }
-            100% { text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+            0% { 
+                text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); 
+            }
+            70% { 
+                /* Slow creep out */
+                text-shadow: 
+                    15px 15px 30px rgba(0, 0, 0, 0.9), 
+                    -12px -10px 25px rgba(0, 0, 0, 0.8),
+                    5px -20px 35px rgba(139, 0, 0, 0.4);
+            }
+            85% {
+                /* Maximum reach before snap */
+                text-shadow: 
+                    25px 25px 50px rgba(0, 0, 0, 1), 
+                    -20px -15px 40px rgba(0, 0, 0, 0.9),
+                    10px -30px 60px rgba(139, 0, 0, 0.6);
+            }
+            90%, 100% { 
+                /* Sudden snap back to tight glow */
+                text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); 
+            }
         }
 
         .index-tagline {
