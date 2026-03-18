@@ -182,8 +182,9 @@
 
                 // 1. THE VORTEX / CHASM (Main Page Special)
                 if (u_isMainPage > 0.5) {
-                    float swirl = 4.5 * exp(-dist * 1.2);
-                    uv *= rot(u_time * 0.25 + swirl);
+                    // Increased speed and switched to negative rotation for the outer swirl
+                    float swirl = 5.0 * exp(-dist * 1.0);
+                    uv *= rot(-u_time * 0.8 - swirl);
                 }
 
                 // 2. THE EVENT HORIZON (Peripheral Refraction)
@@ -220,21 +221,21 @@
                 col += u_themeColor * n * 0.3;
                 col += stars * (0.5 + u_tension);
 
-                // Rotating Accretion Disk Rays (Brighter)
+                // Rotating Accretion Disk Rays (Brighter & Faster)
                 float angle = atan(uv.y, uv.x);
-                float rays = noise(vec2(angle * 4.0 + u_time * 0.2, dist * 0.4)) * 0.5 + 0.5;
+                float rays = noise(vec2(angle * 4.0 + u_time * 0.5, dist * 0.4)) * 0.5 + 0.5;
                 col += u_themeColor * rays * density * 0.7;
 
                 // 6. THE CHASM CORE (Visualizing the Hole)
                 if (u_isMainPage > 0.5) {
-                    // Counter-rotating coordinate system for the inner core
-                    float coreSwirl = 2.0 * exp(-dist * 2.0);
-                    vec2 coreUv = uv * rot(-u_time * 0.15 - coreSwirl);
+                    // Aggressive positive counter-rotation for the inner core
+                    float coreSwirl = 3.0 * exp(-dist * 2.5);
+                    vec2 coreUv = uv * rot(u_time * 1.5 + coreSwirl);
                     
                     // Multiple dark organic layers
-                    float layer1 = fbm(coreUv * 2.0 + u_time * 0.05);
-                    float layer2 = fbm(coreUv * 4.0 - u_time * 0.08);
-                    float layer3 = fbm(coreUv * 8.0 + u_time * 0.1);
+                    float layer1 = fbm(coreUv * 2.0 + u_time * 0.1);
+                    float layer2 = fbm(coreUv * 4.0 - u_time * 0.15);
+                    float layer3 = fbm(coreUv * 8.0 + u_time * 0.2);
                     
                     // Organic edges for each layer
                     float mask1 = smoothstep(0.45 + layer1 * 0.15, 0.35, dist);
