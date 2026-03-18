@@ -866,7 +866,11 @@
     // --- TEXT BLEED ---
     function textBleed(el) {
         el.classList.add('horror-text-bleed');
-        setTimeout(function () { el.classList.remove('horror-text-bleed'); }, 4000);
+        el.style.animation = '';  // clear inline override so !important class wins
+        setTimeout(function () {
+            el.classList.remove('horror-text-bleed');
+            el.style.animation = 'none';  // prevent fadeIn from restarting
+        }, 4000);
     }
 
     // --- COLOR SHIFT (brief red/blue color wash) ---
@@ -1329,6 +1333,17 @@
         setupStaringEffect();
 
         setTimeout(createAudioPrompt, 1200);
+
+        // After all initial CSS fade-in animations complete, kill them so
+        // they can never restart (e.g. when textBleed removes its class,
+        // the browser would otherwise re-trigger fadeIn from opacity:0).
+        // The !important on .horror-text-bleed still wins for bleed effects.
+        setTimeout(function() {
+            var els = document.querySelectorAll('h1, h2, .subtitle, article p, .container p');
+            for (var i = 0; i < els.length; i++) {
+                els[i].style.animation = 'none';
+            }
+        }, 3500);
     }
 
     if (document.readyState === 'loading') {
