@@ -291,11 +291,16 @@
                 arm2 = smoothstep(0.4, 0.7, arm2);
                 col += u_themeColor * arm2 * density * 0.15 * vortexFalloff;
 
-                // Hot inner accretion glow — orange/white gradient near the disc center
-                float innerHeat = smoothstep(0.8, 0.35, dist) * smoothstep(0.15, 0.35, dist);
+                // Hot inner accretion glow — organic boundary following spiral structure
+                float edgeWarp = noise(vec2(angle * 2.0 + u_time * 0.08, 1.0)) * 0.12
+                               + noise(vec2(angle * 5.0 - u_time * 0.12, 2.5)) * 0.06;
+                float armInfluence = rays * 0.06;
+                float warpedEdge = dist - edgeWarp - armInfluence;
+
+                float innerHeat = smoothstep(0.8, 0.35, warpedEdge) * smoothstep(0.15, 0.35, warpedEdge);
                 float heatNoise = noise(vec2(angle * 5.0 + u_time * 0.3, dist * 2.0));
                 vec3 hotColor = mix(vec3(0.6, 0.1, 0.0), vec3(1.0, 0.6, 0.2), heatNoise);
-                col += hotColor * innerHeat * density * 0.2;
+                col += hotColor * innerHeat * density * 0.25;
 
                 // Fine turbulent detail — high-frequency noise at the gas scale
                 float turbulence = noise(uv * rot(u_time * 0.08) * 8.0 + r * 2.0);
@@ -315,9 +320,9 @@
                     float layer3 = fbm(coreUv * 8.0 + u_time * 0.2);
                     
                     // Organic edges for each layer
-                    float mask1 = smoothstep(0.45 + layer1 * 0.15, 0.35, dist);
-                    float mask2 = smoothstep(0.35 + layer2 * 0.1, 0.25, dist);
-                    float mask3 = smoothstep(0.25 + layer3 * 0.05, 0.1, dist);
+                    float mask1 = smoothstep(0.45 + layer1 * 0.15, 0.35, warpedEdge);
+                    float mask2 = smoothstep(0.35 + layer2 * 0.1, 0.25, warpedEdge);
+                    float mask3 = smoothstep(0.25 + layer3 * 0.05, 0.1, warpedEdge);
                     
                     // Blend layers into the core
                     col = mix(col, col * 0.4, mask1);
@@ -329,22 +334,32 @@
                     float pulse = 0.6 + 0.4 * sin(u_time * 0.3);
                     col += vec3(0.5, 0.03, 0.0) * innerGlow * pulse * 0.45;
 
-                    // Counter-rotating luminous threads — light from the impossible
+                    // Counter-rotating luminous threads — organic boundary
                     vec2 lightUv = uv * rot(u_time * 1.5 + coreSwirl);
                     float lightLayer = fbm(lightUv * 3.0 - u_time * 0.12);
-                    float lightMask = smoothstep(0.45, 0.15, dist) * smoothstep(0.05, 0.15, dist);
+                    float lightMask = smoothstep(0.45, 0.15, warpedEdge) * smoothstep(0.05, 0.15, warpedEdge);
                     col += u_themeColor * lightLayer * lightMask * 0.35;
 
-                    // Glowing inner rim (Smoother transition)
-                    float rim = smoothstep(0.5, 0.4, dist) * smoothstep(0.3, 0.4, dist);
-                    col += u_themeColor * rim * 0.6 * (0.8 + layer1 * 0.4);
+                    // Organic void boundary glow — irregular edge where gas superheats
+                    float edgeFine = noise(vec2(angle * 9.0 + u_time * 0.2, dist * 6.0));
 
-                    // Photon ring — thin gravitational lensing at the event horizon
-                    float photonRing = smoothstep(0.30, 0.33, dist) * smoothstep(0.38, 0.35, dist);
-                    float ringNoise = noise(vec2(angle * 10.0 + u_time * 0.25, dist * 8.0));
-                    photonRing *= 0.7 + ringNoise * 0.3;
-                    vec3 ringColor = mix(vec3(1.0, 0.5, 0.1), vec3(1.0, 0.9, 0.7), photonRing);
-                    col += ringColor * photonRing * 0.8;
+                    // Broad outer glow — wide halo fading in organically
+                    float outerGlow = smoothstep(0.55, 0.38, warpedEdge) * smoothstep(0.28, 0.38, warpedEdge);
+                    outerGlow *= 0.7 + layer1 * 0.3 + edgeFine * 0.2;
+                    col += u_themeColor * outerGlow * 0.5;
+
+                    // Hot inner boundary — concentrated bright edge
+                    float innerBoundary = smoothstep(0.40, 0.34, warpedEdge) * smoothstep(0.26, 0.32, warpedEdge);
+                    innerBoundary *= 0.6 + edgeFine * 0.4;
+                    float armBright = rays * 0.4 + 0.6;
+                    vec3 boundaryColor = mix(vec3(1.0, 0.4, 0.08), vec3(1.0, 0.85, 0.6), innerBoundary * edgeFine);
+                    col += boundaryColor * innerBoundary * armBright * 0.6;
+
+                    // Wisps — sparse bright filaments at the edge
+                    float wispNoise = noise(vec2(angle * 14.0 + u_time * 0.3, dist * 10.0));
+                    float wisps = pow(wispNoise, 4.0);
+                    float wispMask = smoothstep(0.42, 0.35, warpedEdge) * smoothstep(0.25, 0.32, warpedEdge);
+                    col += vec3(1.0, 0.7, 0.4) * wisps * wispMask * 0.5;
 
                     // Leaking / Bleeding elements
                     float leak = pow(fbm(uv * rot(u_time * 0.1) * 3.0), 3.0) * density;
