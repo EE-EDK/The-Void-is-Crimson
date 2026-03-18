@@ -254,48 +254,51 @@
                 
                 float density = (1.0 - safeZone) * (0.6 + u_tension * 0.4);
                 
-                // Brighter theme mixing
-                vec3 baseColor = u_themeColor * 0.8;
-                vec3 col = mix(baseColor * 0.1, u_themeColor * 2.5, fluidNoise);
+                // Theme mixing — restrained base so stars and structure show through
+                vec3 baseColor = u_themeColor * 0.4;
+                float vortexFalloff = smoothstep(1.8, 0.3, dist); // concentrate color near center
+                vec3 col = mix(baseColor * 0.05, u_themeColor * 1.2, fluidNoise * vortexFalloff);
                 
-                // Add Nebula color
-                col += u_themeColor * n * 0.3;
+                // Add Nebula color — scaled by vortex proximity
+                col += u_themeColor * n * 0.2 * vortexFalloff;
                 // Deep space dust clouds — subtle color variation in the background
                 float dust1 = fbm(refractedUv * 1.2 + vec2(u_time * 0.02, 0.0));
                 float dust2 = fbm(refractedUv * 1.8 - vec2(0.0, u_time * 0.015));
-                col += vec3(0.15, 0.02, 0.04) * dust1 * 0.3; // warm dust lane
-                col += vec3(0.02, 0.03, 0.08) * dust2 * 0.2; // cool distant nebulosity
-                col += starCol * (0.5 + u_tension);
+                col += vec3(0.15, 0.02, 0.04) * dust1 * 0.25; // warm dust lane
+                col += vec3(0.02, 0.03, 0.08) * dust2 * 0.2;  // cool distant nebulosity
+                // Stars punch through — brighter where vortex is dimmer
+                float starVisibility = 0.6 + 0.6 * (1.0 - vortexFalloff);
+                col += starCol * starVisibility;
 
                 // Rotating Accretion Disk — multi-layer photorealistic structure
                 float angle = atan(uv.y, uv.x);
 
-                // Primary ray structure — broad sweeping arms
+                // Primary ray structure — broad sweeping arms, concentrated near center
                 float rays = noise(vec2(angle * 4.0 + u_time * 0.2, dist * 0.4)) * 0.5 + 0.5;
-                col += u_themeColor * rays * density * 0.7;
+                col += u_themeColor * rays * density * 0.4 * vortexFalloff;
 
                 // Filamentary gas streams — ridged noise creates thin bright veins
                 float ridged1 = 1.0 - abs(noise(vec2(angle * 8.0 + u_time * 0.15, dist * 1.5 - u_time * 0.08)) * 2.0 - 1.0);
                 ridged1 = pow(ridged1, 3.0); // sharpen into filaments
-                float filamentMask = smoothstep(0.3, 0.6, dist) * smoothstep(1.6, 0.8, dist);
-                col += vec3(1.0, 0.3, 0.1) * ridged1 * filamentMask * 0.25;
+                float filamentMask = smoothstep(0.3, 0.6, dist) * smoothstep(1.4, 0.7, dist);
+                col += vec3(1.0, 0.3, 0.1) * ridged1 * filamentMask * 0.15;
 
                 // Secondary spiral arm — counter-wound for depth
                 float arm2 = noise(vec2(angle * 6.0 - u_time * 0.12, dist * 0.8 + u_time * 0.05));
                 arm2 = smoothstep(0.4, 0.7, arm2);
-                col += u_themeColor * arm2 * density * 0.3;
+                col += u_themeColor * arm2 * density * 0.15 * vortexFalloff;
 
                 // Hot inner accretion glow — orange/white gradient near the disc center
                 float innerHeat = smoothstep(0.8, 0.35, dist) * smoothstep(0.15, 0.35, dist);
                 float heatNoise = noise(vec2(angle * 5.0 + u_time * 0.3, dist * 2.0));
                 vec3 hotColor = mix(vec3(0.6, 0.1, 0.0), vec3(1.0, 0.6, 0.2), heatNoise);
-                col += hotColor * innerHeat * density * 0.35;
+                col += hotColor * innerHeat * density * 0.2;
 
                 // Fine turbulent detail — high-frequency noise at the gas scale
                 float turbulence = noise(uv * rot(u_time * 0.08) * 8.0 + r * 2.0);
                 turbulence *= noise(uv * rot(-u_time * 0.06) * 14.0);
                 float turbMask = smoothstep(0.2, 0.7, dist) * smoothstep(1.5, 0.7, dist);
-                col += u_themeColor * turbulence * turbMask * 0.4;
+                col += u_themeColor * turbulence * turbMask * 0.2;
 
                 // 6. THE CHASM CORE (Visualizing the Hole)
                 if (u_isMainPage > 0.5) {
@@ -326,7 +329,7 @@
 
                     // Glowing inner rim (Smoother transition)
                     float rim = smoothstep(0.5, 0.4, dist) * smoothstep(0.3, 0.4, dist);
-                    col += u_themeColor * rim * 1.5 * (0.8 + layer1 * 0.4);
+                    col += u_themeColor * rim * 1.0 * (0.8 + layer1 * 0.4);
                     
                     // Leaking / Bleeding elements
                     float leak = pow(fbm(uv * rot(u_time * 0.1) * 3.0), 3.0) * density;
@@ -342,7 +345,7 @@
                     float tendrilReach = noise(vec2(angleNorm * 6.0 - u_time * 0.05, 0.5));
                     float tendrilOuter = 0.7 + tendrilReach * 0.5;
                     float tendrilMask = smoothstep(0.45, 0.55, dist) * smoothstep(tendrilOuter, 0.55, dist);
-                    col += u_themeColor * tendrilShape * tendrilMask * 0.7;
+                    col += u_themeColor * tendrilShape * tendrilMask * 0.45;
                 }
 
                 // NEURAL FLUID WEAVE
