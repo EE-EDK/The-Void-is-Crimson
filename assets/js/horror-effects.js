@@ -20,16 +20,16 @@
     // =========================================================================
     var CONFIG = {
         audio: {
-            masterVolume: 0.22,
-            droneBase: 0.09,
-            whisperVolume: 0.07,
-            heartbeatVolume: 0.14,
-            sharpVolume: 0.08,
-            stingerVolume: 0.12,
-            impactVolume: 0.18,
-            scrapeVolume: 0.06,
-            breathVolume: 0.04,
-            binauralVolume: 0.03,
+            masterVolume: 0.18,
+            droneBase: 0.05,
+            whisperVolume: 0.04,
+            heartbeatVolume: 0.12,
+            sharpVolume: 0.06,
+            stingerVolume: 0.10,
+            impactVolume: 0.15,
+            scrapeVolume: 0.04,
+            breathVolume: 0.03,
+            binauralVolume: 0.02,
         },
         visual: {
             glitchDuration: 300,
@@ -42,10 +42,10 @@
             chromaticEnabled: true,
         },
         timing: {
-            whisperRange: [12000, 35000],
-            ambientRange: [15000, 45000],
-            onLoadDelay: 4000,
-            breathCycle: 10000,
+            whisperRange: [25000, 60000], // Slower, more rare
+            ambientRange: [30000, 80000], // Slower, more rare
+            onLoadDelay: 6000,
+            breathCycle: 12000,
         },
     };
 
@@ -57,6 +57,7 @@
     var ready = false;
     var droneGain = null;
     var droneNodes = [];
+    var tension = 0; // 0 to 1 scale for audio intensity
 
     function initAudio() {
         if (ready) return;
@@ -70,106 +71,35 @@
             startDrone();
             scheduleWhisper();
             scheduleBreath();
+            updateTensionLoop();
         } catch (e) {
             console.warn('Horror audio unavailable:', e);
         }
     }
 
-    // --- ENHANCED DISSONANT DRONE ---
+    // --- ALEATORIC DISSONANT DRONE ---
     function startDrone() {
         if (!ready) return;
 
         droneGain = ctx.createGain();
         droneGain.gain.value = 0;
         droneGain.connect(master);
-        droneGain.gain.linearRampToValueAtTime(CONFIG.audio.droneBase, ctx.currentTime + 5);
+        droneGain.gain.linearRampToValueAtTime(CONFIG.audio.droneBase, ctx.currentTime + 10);
 
-        // Sub-bass foundation
-        var bass = ctx.createOscillator();
-        bass.type = 'sine';
-        bass.frequency.value = 42;
-        bass.connect(droneGain);
-        bass.start();
-        droneNodes.push(bass);
+        // Sub-bass foundation (The "Void" hum)
+        createDroneLayer(42, 'sine', 0.4, 0.03, 2);
+        
+        // Background Dissonance: Aleatoric Cluster
+        // These are slightly detuned and modulate independently to create "shimmering" unease
+        createDroneLayer(44.5, 'sine', 0.2, 0.05, 1.5); // Minor 2nd
+        createDroneLayer(59.5, 'sine', 0.15, 0.02, 1);   // Tritone
+        createDroneLayer(89, 'sine', 0.05, 0.08, 0.5);   // Minor 9th
+        
+        // High ghost tones (The "Crimson" shimmer)
+        createDroneLayer(15500, 'sine', 0.01, 0.01, 0.1);
+        createDroneLayer(15523, 'sine', 0.008, 0.012, 0.08);
 
-        // Minor 2nd cluster — creates beating/interference pattern
-        var cluster1 = ctx.createOscillator();
-        cluster1.type = 'sine';
-        cluster1.frequency.value = 44.5; // ~minor 2nd above, creates 2.5Hz beating
-        var c1Gain = ctx.createGain();
-        c1Gain.gain.value = 0.25;
-        cluster1.connect(c1Gain);
-        c1Gain.connect(droneGain);
-        cluster1.start();
-        droneNodes.push(cluster1);
-
-        // Tritone overtone (dissonant)
-        var tritone = ctx.createOscillator();
-        tritone.type = 'sine';
-        tritone.frequency.value = 59.5;
-        var tGain = ctx.createGain();
-        tGain.gain.value = 0.2;
-        tritone.connect(tGain);
-        tGain.connect(droneGain);
-        tritone.start();
-        droneNodes.push(tritone);
-
-        // Minor 9th overtone — extremely dissonant
-        var minor9 = ctx.createOscillator();
-        minor9.type = 'sine';
-        minor9.frequency.value = 89; // minor 9th from 42Hz
-        var m9Gain = ctx.createGain();
-        m9Gain.gain.value = 0.08;
-        minor9.connect(m9Gain);
-        m9Gain.connect(droneGain);
-        minor9.start();
-        droneNodes.push(minor9);
-
-        // Slow LFO detuning the bass
-        var lfo = ctx.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.value = 0.03;
-        var lfoAmt = ctx.createGain();
-        lfoAmt.gain.value = 3;
-        lfo.connect(lfoAmt);
-        lfoAmt.connect(bass.frequency);
-        lfo.start();
-        droneNodes.push(lfo);
-
-        // Second LFO — slower, modulates the cluster
-        var lfo2 = ctx.createOscillator();
-        lfo2.type = 'triangle';
-        lfo2.frequency.value = 0.07;
-        var lfo2Amt = ctx.createGain();
-        lfo2Amt.gain.value = 1.5;
-        lfo2.connect(lfo2Amt);
-        lfo2Amt.connect(cluster1.frequency);
-        lfo2.start();
-        droneNodes.push(lfo2);
-
-        // High ghost tone — barely audible, creates unease
-        var ghost = ctx.createOscillator();
-        ghost.type = 'sine';
-        ghost.frequency.value = 15500;
-        var ghostGain = ctx.createGain();
-        ghostGain.gain.value = 0.015;
-        ghost.connect(ghostGain);
-        ghostGain.connect(droneGain);
-        ghost.start();
-        droneNodes.push(ghost);
-
-        // Second ghost — slightly detuned for shimmer
-        var ghost2 = ctx.createOscillator();
-        ghost2.type = 'sine';
-        ghost2.frequency.value = 15523;
-        var ghost2Gain = ctx.createGain();
-        ghost2Gain.gain.value = 0.012;
-        ghost2.connect(ghost2Gain);
-        ghost2Gain.connect(droneGain);
-        ghost2.start();
-        droneNodes.push(ghost2);
-
-        // Filtered noise layer (wind / breath)
+        // Filtered noise (The "Wind of the Void")
         var bufLen = ctx.sampleRate * 4;
         var noiseBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
         var nd = noiseBuf.getChannelData(0);
@@ -184,30 +114,65 @@
         bp.frequency.value = 180;
         bp.Q.value = 0.6;
 
-        // Slow sweep on the noise filter
         var noiseLfo = ctx.createOscillator();
         noiseLfo.type = 'sine';
-        noiseLfo.frequency.value = 0.02;
+        noiseLfo.frequency.value = 0.015;
         var noiseLfoAmt = ctx.createGain();
-        noiseLfoAmt.gain.value = 80;
+        noiseLfoAmt.gain.value = 60;
         noiseLfo.connect(noiseLfoAmt);
         noiseLfoAmt.connect(bp.frequency);
         noiseLfo.start();
         droneNodes.push(noiseLfo);
 
         var nGain = ctx.createGain();
-        nGain.gain.value = 0.03;
+        nGain.gain.value = 0.02;
 
         noise.connect(bp);
         bp.connect(nGain);
         nGain.connect(droneGain);
         noise.start();
 
-        // Binaural beating layer — slightly different frequencies L/R
         startBinauralBeat();
     }
 
-    // --- BINAURAL BEATING ---
+    function createDroneLayer(freq, type, vol, lfoFreq, lfoDepth) {
+        var osc = ctx.createOscillator();
+        osc.type = type;
+        osc.frequency.value = freq;
+        
+        var g = ctx.createGain();
+        g.gain.value = vol;
+        
+        var lfo = ctx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = lfoFreq;
+        var lfoAmt = ctx.createGain();
+        lfoAmt.gain.value = lfoDepth;
+        
+        lfo.connect(lfoAmt);
+        lfoAmt.connect(osc.frequency);
+        
+        osc.connect(g);
+        g.connect(droneGain);
+        
+        osc.start();
+        lfo.start();
+        droneNodes.push(osc, lfo);
+    }
+
+    function updateTensionLoop() {
+        if (!ready) return;
+        
+        // Tension slowly builds with scroll and triggers
+        // We use it to modulate filter frequencies and oscillator detune
+        var now = ctx.currentTime;
+        var targetVol = CONFIG.audio.droneBase * (1 + tension * 4);
+        droneGain.gain.linearRampToValueAtTime(targetVol, now + 0.5);
+        
+        setTimeout(updateTensionLoop, 500);
+    }
+
+    // --- BINAURAL BEATING (Theta state for unease) ---
     function startBinauralBeat() {
         if (!ready) return;
 
@@ -215,7 +180,6 @@
         binGain.gain.value = CONFIG.audio.binauralVolume;
         binGain.connect(droneGain);
 
-        // Left ear: 100Hz
         var oscL = ctx.createOscillator();
         oscL.type = 'sine';
         oscL.frequency.value = 100;
@@ -226,10 +190,9 @@
         oscL.start();
         droneNodes.push(oscL);
 
-        // Right ear: 107Hz — creates 7Hz theta wave beating
         var oscR = ctx.createOscillator();
         oscR.type = 'sine';
-        oscR.frequency.value = 107;
+        oscR.frequency.value = 106.5; // 6.5Hz beating
         var panR = ctx.createStereoPanner();
         panR.pan.value = 1;
         oscR.connect(panR);
@@ -239,12 +202,7 @@
     }
 
     function setDroneIntensity(intensity) {
-        if (!ready || !droneGain) return;
-        var vol = CONFIG.audio.droneBase * (1 + intensity * 6);
-        droneGain.gain.linearRampToValueAtTime(
-            Math.min(vol, 0.5),
-            ctx.currentTime + 1.0
-        );
+        tension = Math.max(tension, intensity);
     }
 
     // --- ENHANCED WHISPERS ---
