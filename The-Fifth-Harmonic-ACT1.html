@@ -31,10 +31,18 @@
     <link rel="stylesheet" href="./assets/css/shared-styles.css">
     <link rel="stylesheet" href="./assets/css/act1-custom.css">
 
+    
+    <script>
+        window.handleThreeJSLoadError = function() {
+            console.error('Three.js failed to load. Using fallback.');
+            document.body.style.backgroundColor = '#0a0a0a';
+            document.body.style.backgroundImage = 'radial-gradient(circle, #1a0a0a, #000)';
+        };
+    </script>
     <!-- Updated Three.js r160 with SRI -->
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"
-        integrity="sha512-K6BK8SbJY0jNGbLQvQ2VLlVQ/KqFJVKwbVPMM3UP5VmLPwrjL4N0YvZ9KqPrLkqL3k5R5lPLKqLqKKLLqkXqmA=="
+        integrity="sha512-vnmn/Qqn6aG0POAc9mIGzjq0IybrvxJXYDafNvp9JSnDGxeF3pbkSqLvf+YGd5ku63pT7sa/jxHn7/d0mU8+tA=="
         crossorigin="anonymous"
         referrerpolicy="no-referrer"
         onerror="handleThreeJSLoadError()"></script>
