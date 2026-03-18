@@ -167,6 +167,7 @@
         bp.connect(nGain);
         nGain.connect(droneGain);
         noise.start();
+        droneNodes.push(noise);
 
         startBinauralBeat();
     }
@@ -235,8 +236,12 @@
         droneNodes.push(oscR);
     }
 
-    function setDroneIntensity(intensity) {
-        tension = Math.max(tension, Math.min(intensity, 1.0));
+    function setDroneIntensity(intensity, force) {
+        if (force) {
+            tension = Math.min(intensity, 1.0);
+        } else {
+            tension = Math.max(tension, Math.min(intensity, 1.0));
+        }
     }
 
     // --- ENHANCED WHISPERS ---
@@ -711,16 +716,18 @@
 
         var grainCtx = grainCanvas.getContext('2d');
         function renderGrain() {
-            var imageData = grainCtx.createImageData(256, 256);
-            var data = imageData.data;
-            for (var i = 0; i < data.length; i += 4) {
-                var v = Math.random() * 255;
-                data[i] = v;
-                data[i + 1] = v;
-                data[i + 2] = v;
-                data[i + 3] = 12; // very subtle
+            if (!document.hidden) {
+                var imageData = grainCtx.createImageData(256, 256);
+                var data = imageData.data;
+                for (var i = 0; i < data.length; i += 4) {
+                    var v = Math.random() * 255;
+                    data[i] = v;
+                    data[i + 1] = v;
+                    data[i + 2] = v;
+                    data[i + 3] = 12; // very subtle
+                }
+                grainCtx.putImageData(imageData, 0, 0);
             }
-            grainCtx.putImageData(imageData, 0, 0);
             requestAnimationFrame(renderGrain);
         }
         requestAnimationFrame(renderGrain);
@@ -964,7 +971,7 @@
                         if (ready) playReverseSwell();
                         break;
                     case 'calm':
-                        setDroneIntensity(0.1);
+                        setDroneIntensity(0.1, true);
                         cursorTrailOn = false;
                         setVignetteIntensity(CONFIG.visual.vignetteBase);
                         break;
@@ -1080,10 +1087,25 @@
         CONFIG.visual.scrambleDuration = 1000 / (1 + scrollIntensity);
     }
 
+    // --- READING PROGRESS BAR ---
+    var progressBar = null;
+    function updateProgressBar() {
+        if (!progressBar) progressBar = document.getElementById('progress-bar');
+        if (!progressBar) return;
+        var total = document.documentElement.scrollHeight - window.innerHeight;
+        if (total <= 0) { progressBar.style.width = '0%'; return; }
+        var pct = Math.min((window.scrollY / total) * 100, 100);
+        progressBar.style.width = pct + '%';
+    }
+
     var sTicking = false;
     window.addEventListener('scroll', function () {
         if (!sTicking) {
-            requestAnimationFrame(function () { updateScrollIntensity(); sTicking = false; });
+            requestAnimationFrame(function () {
+                updateScrollIntensity();
+                updateProgressBar();
+                sTicking = false;
+            });
             sTicking = true;
         }
     }, { passive: true });

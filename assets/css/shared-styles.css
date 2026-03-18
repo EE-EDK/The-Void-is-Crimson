@@ -518,7 +518,7 @@ body.fade-out-to-next {
             rgba(139, 0, 0, 0.10) 85%,
             transparent 100%
         );
-    animation: horror-glitch-scan 0.3s linear;
+    animation: horror-glitch-scan 0.3s linear forwards;
 }
 
 @keyframes horror-glitch-scan {
@@ -541,7 +541,7 @@ body.fade-out-to-next {
         rgba(80, 0, 0, 0.15) 60%,
         rgba(40, 0, 0, 0.2) 100%
     );
-    animation: horror-red-pulse 0.35s ease-out;
+    animation: horror-red-pulse 0.35s ease-out forwards;
 }
 
 @keyframes horror-red-pulse {
