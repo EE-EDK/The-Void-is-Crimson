@@ -72,39 +72,53 @@
             font-weight: 300;
             color: rgba(255, 255, 255, 0.9);
             letter-spacing: 0.25em;
-            animation: pulse 5s infinite ease-in-out;
+            /* Pulse handled separately to avoid shadow conflicts */
+            animation: title-fade 5s infinite ease-in-out;
             margin-bottom: 0.5rem;
             position: relative;
             z-index: 2;
         }
 
+        @keyframes title-fade {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
         .void-word {
             display: inline-block;
-            animation: tendrils 15s infinite ease-in-out;
-            color: #ffffff; /* Slightly brighter to emphasize the effect */
+            position: relative;
+            animation: tendrils 8s infinite ease-in-out; /* Faster cycle */
+            color: #ffffff;
+            font-weight: 400; /* Slightly bolder to stand out */
         }
 
         @keyframes tendrils {
-            0% { 
-                text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); 
+            0%, 10% { 
+                text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); 
+                transform: scale(1);
             }
-            70% { 
-                /* Slow creep out */
+            60% { 
+                /* Dramatic creep out */
                 text-shadow: 
-                    15px 15px 30px rgba(0, 0, 0, 0.9), 
-                    -12px -10px 25px rgba(0, 0, 0, 0.8),
-                    5px -20px 35px rgba(139, 0, 0, 0.4);
+                    20px 20px 40px rgba(0, 0, 0, 1), 
+                    -15px -15px 35px rgba(0, 0, 0, 0.9),
+                    8px -25px 45px rgba(139, 0, 0, 0.7),
+                    -25px 10px 50px rgba(0, 0, 0, 1);
+                transform: scale(1.02);
             }
-            85% {
-                /* Maximum reach before snap */
+            80% {
+                /* Maximum reach/distress */
                 text-shadow: 
-                    25px 25px 50px rgba(0, 0, 0, 1), 
-                    -20px -15px 40px rgba(0, 0, 0, 0.9),
-                    10px -30px 60px rgba(139, 0, 0, 0.6);
+                    40px 40px 60px rgba(0, 0, 0, 1), 
+                    -30px -25px 50px rgba(0, 0, 0, 1),
+                    15px -40px 70px rgba(139, 0, 0, 0.8),
+                    -40px 20px 80px rgba(0, 0, 0, 1);
+                transform: scale(1.05);
             }
-            90%, 100% { 
-                /* Sudden snap back to tight glow */
-                text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); 
+            85%, 100% { 
+                /* Snap back */
+                text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); 
+                transform: scale(1);
             }
         }
 
