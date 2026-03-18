@@ -70,13 +70,18 @@
         .title {
             font-size: clamp(2.5rem, 8vw, 4.5rem);
             font-weight: 300;
-            color: rgba(255, 255, 255, 0.9); /* Slight transparency to see 'inside' */
+            color: rgba(255, 255, 255, 0.9);
             letter-spacing: 0.25em;
-            /* Combined pulse and tendril animations */
-            animation: pulse 5s infinite ease-in-out, tendrils 15s infinite ease-in-out;
+            animation: pulse 5s infinite ease-in-out;
             margin-bottom: 0.5rem;
             position: relative;
             z-index: 2;
+        }
+
+        .void-word {
+            display: inline-block;
+            animation: tendrils 15s infinite ease-in-out;
+            color: #ffffff; /* Slightly brighter to emphasize the effect */
         }
 
         @keyframes tendrils {
@@ -228,7 +233,7 @@
     <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
     <main id="main-content" class="container" role="main">
-        <h1 class="title">The Void at Crimson Sunset</h1>
+        <h1 class="title">The <span class="void-word">Void</span> at Crimson Sunset</h1>
         <p class="index-tagline horror-whisper" data-whisper="you were always coming here">An interactive cosmic horror experience</p>
         <nav class="acts-navigation" role="navigation" aria-label="Story chapters">
             <a href="./The-Fifth-Harmonic-ACT1.html" class="act-link" data-subtitle="The Pattern calls">ACT I: The Fifth Harmonic</a>
