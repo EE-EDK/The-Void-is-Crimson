@@ -183,7 +183,7 @@
                 // 1. THE VORTEX / CHASM (Main Page Special)
                 if (u_isMainPage > 0.5) {
                     // Reverted to normal slow speed
-                    float swirl = 4.5 * exp(-dist * 1.2);
+                    float swirl = 3.0 * exp(-dist * 1.8);
                     uv *= rot(u_time * 0.25 + swirl);
                 }
 
@@ -256,7 +256,7 @@
                 
                 // Theme mixing — restrained base so stars and structure show through
                 vec3 baseColor = u_themeColor * 0.4;
-                float vortexFalloff = smoothstep(1.8, 0.3, dist); // concentrate color near center
+                float vortexFalloff = smoothstep(1.4, 0.2, dist); // concentrate color near center
                 vec3 col = mix(baseColor * 0.05, u_themeColor * 1.2, fluidNoise * vortexFalloff);
                 
                 // Add Nebula color — scaled by vortex proximity
@@ -281,7 +281,7 @@
                 // Filamentary gas streams — ridged noise creates thin bright veins
                 float ridged1 = 1.0 - abs(noise(vec2(angle * 8.0 + u_time * 0.15, dist * 1.5 - u_time * 0.08)) * 2.0 - 1.0);
                 ridged1 = pow(ridged1, 3.0); // sharpen into filaments
-                float filamentMask = smoothstep(0.3, 0.6, dist) * smoothstep(1.4, 0.7, dist);
+                float filamentMask = smoothstep(0.2, 0.45, dist) * smoothstep(1.0, 0.5, dist);
                 float filamentClump = noise(vec2(angle * 7.0 - u_time * 0.03, dist * 2.0));
                 filamentClump = smoothstep(0.25, 0.6, filamentClump);
                 col += vec3(1.0, 0.3, 0.1) * ridged1 * filamentMask * 0.15 * filamentClump;
@@ -292,20 +292,20 @@
                 col += u_themeColor * arm2 * density * 0.15 * vortexFalloff;
 
                 // Hot inner accretion glow — organic boundary following spiral structure
-                float edgeWarp = noise(vec2(angle * 2.0 + u_time * 0.08, 1.0)) * 0.12
-                               + noise(vec2(angle * 5.0 - u_time * 0.12, 2.5)) * 0.06;
-                float armInfluence = rays * 0.06;
+                float edgeWarp = noise(vec2(angle * 2.0 + u_time * 0.08, 1.0)) * 0.05
+                               + noise(vec2(angle * 5.0 - u_time * 0.12, 2.5)) * 0.02;
+                float armInfluence = rays * 0.03;
                 float warpedEdge = dist - edgeWarp - armInfluence;
 
-                float innerHeat = smoothstep(0.8, 0.35, warpedEdge) * smoothstep(0.15, 0.35, warpedEdge);
+                float innerHeat = smoothstep(0.6, 0.25, warpedEdge) * smoothstep(0.1, 0.25, warpedEdge);
                 float heatNoise = noise(vec2(angle * 5.0 + u_time * 0.3, dist * 2.0));
                 vec3 hotColor = mix(vec3(0.6, 0.1, 0.0), vec3(1.0, 0.6, 0.2), heatNoise);
-                col += hotColor * innerHeat * density * 0.25;
+                col += hotColor * innerHeat * density * 0.18;
 
                 // Fine turbulent detail — high-frequency noise at the gas scale
                 float turbulence = noise(uv * rot(u_time * 0.08) * 8.0 + r * 2.0);
                 turbulence *= noise(uv * rot(-u_time * 0.06) * 14.0);
-                float turbMask = smoothstep(0.2, 0.7, dist) * smoothstep(1.5, 0.7, dist);
+                float turbMask = smoothstep(0.15, 0.5, dist) * smoothstep(1.1, 0.5, dist);
                 col += u_themeColor * turbulence * turbMask * 0.2;
 
                 // 6. THE CHASM CORE (Visualizing the Hole)
@@ -320,9 +320,9 @@
                     float layer3 = fbm(coreUv * 8.0 + u_time * 0.2);
                     
                     // Organic edges for each layer
-                    float mask1 = smoothstep(0.45 + layer1 * 0.15, 0.35, warpedEdge);
-                    float mask2 = smoothstep(0.35 + layer2 * 0.1, 0.25, warpedEdge);
-                    float mask3 = smoothstep(0.25 + layer3 * 0.05, 0.1, warpedEdge);
+                    float mask1 = smoothstep(0.35 + layer1 * 0.12, 0.25, warpedEdge);
+                    float mask2 = smoothstep(0.25 + layer2 * 0.08, 0.18, warpedEdge);
+                    float mask3 = smoothstep(0.18 + layer3 * 0.04, 0.07, warpedEdge);
                     
                     // Blend layers into the core
                     col = mix(col, col * 0.4, mask1);
@@ -330,36 +330,36 @@
                     col = mix(col, vec3(0.0), mask3); // Absolute void center
 
                     // The Watcher — something stirs inside the absolute void
-                    float innerGlow = exp(-dist * dist * 25.0);
+                    float innerGlow = exp(-dist * dist * 45.0);
                     float pulse = 0.6 + 0.4 * sin(u_time * 0.3);
                     col += vec3(0.5, 0.03, 0.0) * innerGlow * pulse * 0.45;
 
                     // Counter-rotating luminous threads — organic boundary
                     vec2 lightUv = uv * rot(u_time * 1.5 + coreSwirl);
                     float lightLayer = fbm(lightUv * 3.0 - u_time * 0.12);
-                    float lightMask = smoothstep(0.45, 0.15, warpedEdge) * smoothstep(0.05, 0.15, warpedEdge);
+                    float lightMask = smoothstep(0.35, 0.1, warpedEdge) * smoothstep(0.03, 0.1, warpedEdge);
                     col += u_themeColor * lightLayer * lightMask * 0.35;
 
                     // Organic void boundary glow — irregular edge where gas superheats
                     float edgeFine = noise(vec2(angle * 9.0 + u_time * 0.2, dist * 6.0));
 
                     // Broad outer glow — wide halo fading in organically
-                    float outerGlow = smoothstep(0.55, 0.38, warpedEdge) * smoothstep(0.28, 0.38, warpedEdge);
+                    float outerGlow = smoothstep(0.42, 0.28, warpedEdge) * smoothstep(0.20, 0.28, warpedEdge);
                     outerGlow *= 0.7 + layer1 * 0.3 + edgeFine * 0.2;
-                    col += u_themeColor * outerGlow * 0.5;
+                    col += u_themeColor * outerGlow * 0.3;
 
                     // Hot inner boundary — concentrated bright edge
-                    float innerBoundary = smoothstep(0.40, 0.34, warpedEdge) * smoothstep(0.26, 0.32, warpedEdge);
+                    float innerBoundary = smoothstep(0.30, 0.25, warpedEdge) * smoothstep(0.18, 0.24, warpedEdge);
                     innerBoundary *= 0.6 + edgeFine * 0.4;
                     float armBright = rays * 0.4 + 0.6;
                     vec3 boundaryColor = mix(vec3(1.0, 0.4, 0.08), vec3(1.0, 0.85, 0.6), innerBoundary * edgeFine);
-                    col += boundaryColor * innerBoundary * armBright * 0.6;
+                    col += boundaryColor * innerBoundary * armBright * 0.4;
 
                     // Wisps — sparse bright filaments at the edge
                     float wispNoise = noise(vec2(angle * 14.0 + u_time * 0.3, dist * 10.0));
                     float wisps = pow(wispNoise, 4.0);
-                    float wispMask = smoothstep(0.42, 0.35, warpedEdge) * smoothstep(0.25, 0.32, warpedEdge);
-                    col += vec3(1.0, 0.7, 0.4) * wisps * wispMask * 0.5;
+                    float wispMask = smoothstep(0.32, 0.26, warpedEdge) * smoothstep(0.18, 0.25, warpedEdge);
+                    col += vec3(1.0, 0.7, 0.4) * wisps * wispMask * 0.3;
 
                     // Leaking / Bleeding elements
                     float leak = pow(fbm(uv * rot(u_time * 0.1) * 3.0), 3.0) * density;
@@ -373,9 +373,9 @@
                     float tendrilNoise = fbm(vec2(angleNorm * 4.0 + u_time * 0.08, dist * 2.0 - u_time * 0.15));
                     float tendrilShape = pow(tendrilNoise, 3.0);
                     float tendrilReach = noise(vec2(angleNorm * 6.0 - u_time * 0.05, 0.5));
-                    float tendrilOuter = 0.7 + tendrilReach * 0.5;
-                    float tendrilMask = smoothstep(0.45, 0.55, dist) * smoothstep(tendrilOuter, 0.55, dist);
-                    col += u_themeColor * tendrilShape * tendrilMask * 0.45;
+                    float tendrilOuter = 0.55 + tendrilReach * 0.35;
+                    float tendrilMask = smoothstep(0.35, 0.42, dist) * smoothstep(tendrilOuter, 0.42, dist);
+                    col += u_themeColor * tendrilShape * tendrilMask * 0.3;
                 }
 
                 // NEURAL FLUID WEAVE
