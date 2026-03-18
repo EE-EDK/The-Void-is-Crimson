@@ -162,7 +162,7 @@ h1 {
     color: #ffffff;
     text-shadow: 0 0 20px var(--primary-glow), 0 0 5px #000;
     letter-spacing: 2px;
-    animation: fadeIn 2s ease-in;
+    animation: fadeIn 2s ease-in both;
 }
 
 /* Subtitle */
@@ -173,7 +173,7 @@ h1 {
     color: #eee; /* Lightened for contrast */
     text-shadow: 0 0 5px #000;
     font-size: var(--font-size-subtitle);
-    animation: fadeIn 2s ease-in 0.5s backwards;
+    animation: fadeIn 2s ease-in 0.5s both;
 }
 
 /* Section Headings */
@@ -651,7 +651,7 @@ body.fade-out-to-next {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    z-index: 10000;
+    z-index: 10001;
     opacity: 0;
     transition: opacity 0.8s ease;
     pointer-events: none;

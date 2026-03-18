@@ -96,12 +96,19 @@
             delayL.connect(panL); panL.connect(master);
             delayR.connect(panR); panR.connect(master);
 
-            if (ctx.state === 'suspended') ctx.resume();
-            ready = true;
-            startDrone();
-            scheduleWhisper();
-            scheduleBreath();
-            updateTensionLoop();
+            function startAll() {
+                ready = true;
+                startDrone();
+                scheduleWhisper();
+                scheduleBreath();
+                updateTensionLoop();
+            }
+
+            if (ctx.state === 'suspended') {
+                ctx.resume().then(startAll).catch(function() { startAll(); });
+            } else {
+                startAll();
+            }
         } catch (e) {
             console.warn('Horror audio unavailable:', e);
         }
