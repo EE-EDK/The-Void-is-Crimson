@@ -20,16 +20,17 @@
     // =========================================================================
     var CONFIG = {
         audio: {
-            masterVolume: 0.35,      // Increased from 0.18
-            droneBase: 0.12,         // Increased from 0.05
-            whisperVolume: 0.15,     // Increased from 0.04
-            heartbeatVolume: 0.25,   // Increased from 0.12
-            sharpVolume: 0.15,       // Increased from 0.06
-            stingerVolume: 0.25,     // Increased from 0.10
-            impactVolume: 0.35,      // Increased from 0.15
-            scrapeVolume: 0.12,      // Increased from 0.04
-            breathVolume: 0.10,      // Increased from 0.03
-            binauralVolume: 0.08,    // Increased from 0.02
+            masterVolume: 0.30,      // Global ceiling — lowered to leave headroom
+            droneBase: 0.08,         // Subtle foundation, not a wall of sound
+            whisperVolume: 0.10,     // Gentle, not startling
+            heartbeatVolume: 0.18,   // Felt, not painful
+            sharpVolume: 0.10,       // Piercing tones need restraint
+            stingerVolume: 0.15,     // FM stingers are inherently loud
+            impactVolume: 0.20,      // Boom, not blast
+            scrapeVolume: 0.08,      // Comb filters self-amplify
+            breathVolume: 0.07,      // Background texture
+            binauralVolume: 0.05,    // Subliminal only
+            maxConcurrentSounds: 4,  // Polyphony limit to prevent stacking
         },
         visual: {
             glitchDuration: 300,
@@ -53,10 +54,24 @@
     var ctx = null;
     var master = null;
     var reverbNode = null;
+    var droneBus = null;       // Bus for persistent drone/binaural
+    var effectBus = null;      // Bus for transient one-shot effects
+    var sharedNoiseBuffer = null;     // Pre-generated white noise (4s)
+    var sharedLongNoiseBuffer = null; // Pre-generated white noise (7s, co-prime)
     var ready = false;
     var droneGain = null;
     var droneNodes = [];
     var tension = 0; // 0 to 1 scale for audio intensity
+    var activeSounds = 0; // Polyphony counter (excludes drone/binaural)
+
+    // Guard: returns true if a new sound can play, false if at limit
+    function canPlaySound() {
+        return activeSounds < CONFIG.audio.maxConcurrentSounds;
+    }
+    function trackSound(duration) {
+        activeSounds++;
+        setTimeout(function() { activeSounds = Math.max(0, activeSounds - 1); }, (duration || 2) * 1000);
+    }
 
     function initAudio() {
         // If context exists but is suspended, try to resume it (needs user gesture)
@@ -80,29 +95,57 @@
             master.gain.value = CONFIG.audio.masterVolume;
             master.connect(limiter);
 
-            // --- SPATIAL REVERB BUS (Creates a vast, cavernous environment) ---
+            // --- CATEGORY BUSES (independent volume control per sound type) ---
+            droneBus = ctx.createGain();
+            droneBus.gain.value = 0.8;
+            droneBus.connect(master);
+
+            effectBus = ctx.createGain();
+            effectBus.gain.value = 0.7;
+            effectBus.connect(master);
+
+            // --- PRE-GENERATE NOISE BUFFERS (avoid per-sound allocation) ---
+            var noiseDur = 4;
+            var noiseLen = Math.floor(ctx.sampleRate * noiseDur);
+            sharedNoiseBuffer = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+            var nd = sharedNoiseBuffer.getChannelData(0);
+            for (var i = 0; i < noiseLen; i++) nd[i] = Math.random() * 2 - 1;
+
+            // Longer noise buffer for whispers/breaths (co-prime with 4s to avoid alignment)
+            var longNoiseDur = 7;
+            var longNoiseLen = Math.floor(ctx.sampleRate * longNoiseDur);
+            sharedLongNoiseBuffer = ctx.createBuffer(1, longNoiseLen, ctx.sampleRate);
+            var lnd = sharedLongNoiseBuffer.getChannelData(0);
+            for (var i = 0; i < longNoiseLen; i++) lnd[i] = Math.random() * 2 - 1;
+
+            // --- SPATIAL REVERB BUS (dual-delay feedback with HPF to prevent rumble) ---
             reverbNode = ctx.createGain();
-            reverbNode.gain.value = 0.3; // Wet send level (was 0.6 — halved to prevent buildup)
+            reverbNode.gain.value = 0.25; // Wet send level
 
-            var delayL = ctx.createDelay(); delayL.delayTime.value = 0.27;
-            var delayR = ctx.createDelay(); delayR.delayTime.value = 0.37;
-            var fbL = ctx.createGain(); fbL.gain.value = 0.25;   // was 0.45
-            var fbR = ctx.createGain(); fbR.gain.value = 0.25;   // was 0.45
-            var crossL = ctx.createGain(); crossL.gain.value = 0.1;  // was 0.25
-            var crossR = ctx.createGain(); crossR.gain.value = 0.1;  // was 0.25
+            // Irrational delay ratios — LCM alignment at ~30s, prevents comb filtering
+            var delayL = ctx.createDelay(); delayL.delayTime.value = 0.55;
+            var delayR = ctx.createDelay(); delayR.delayTime.value = 0.79;
+            var fbL = ctx.createGain(); fbL.gain.value = 0.30;
+            var fbR = ctx.createGain(); fbR.gain.value = 0.25;
 
+            // Lowpass darkens tail (natural surface absorption)
             var damp = ctx.createBiquadFilter();
             damp.type = 'lowpass';
-            damp.frequency.value = 2000;  // was 2500 — tighter damping kills high buildup
+            damp.frequency.value = 2500;
 
-            reverbNode.connect(damp);
+            // Highpass prevents low-frequency energy accumulation across iterations
+            var hpf = ctx.createBiquadFilter();
+            hpf.type = 'highpass';
+            hpf.frequency.value = 200;
+
+            reverbNode.connect(hpf);
+            hpf.connect(damp);
             damp.connect(delayL);
             damp.connect(delayR);
 
-            delayL.connect(fbL); fbL.connect(delayL);
-            delayR.connect(fbR); fbR.connect(delayR);
-            delayL.connect(crossL); crossL.connect(delayR);
-            delayR.connect(crossR); crossR.connect(delayL);
+            // Cross-feed: delayL → fbL → delayR, delayR → fbR → delayL
+            delayL.connect(fbL); fbL.connect(delayR);
+            delayR.connect(fbR); fbR.connect(delayL);
 
             var panL = ctx.createStereoPanner(); panL.pan.value = -0.8;
             var panR = ctx.createStereoPanner(); panR.pan.value = 0.8;
@@ -136,7 +179,7 @@
 
         droneGain = ctx.createGain();
         droneGain.gain.value = 0;
-        droneGain.connect(master);
+        droneGain.connect(droneBus);
         droneGain.connect(reverbNode); // Send to cavern
         droneGain.gain.linearRampToValueAtTime(CONFIG.audio.droneBase, ctx.currentTime + 3);
 
@@ -156,14 +199,9 @@
         createDroneLayer(15500, 'sine', 0.01, 0.01, 0.1);
         createDroneLayer(15523, 'sine', 0.008, 0.012, 0.08);
 
-        // Filtered noise (The "Wind of the Void")
-        var bufLen = ctx.sampleRate * 4;
-        var noiseBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-        var nd = noiseBuf.getChannelData(0);
-        for (var i = 0; i < bufLen; i++) nd[i] = Math.random() * 2 - 1;
-
+        // Filtered noise (The "Wind of the Void") — uses pre-generated buffer
         var noise = ctx.createBufferSource();
-        noise.buffer = noiseBuf;
+        noise.buffer = sharedNoiseBuffer;
         noise.loop = true;
 
         var bp = ctx.createBiquadFilter();
@@ -234,7 +272,7 @@
         tension *= 0.97;
         if (tension < 0.01) tension = 0;
         var now = ctx.currentTime;
-        var targetVol = Math.min(CONFIG.audio.droneBase * (1 + tension * 2), 0.25);
+        var targetVol = Math.min(CONFIG.audio.droneBase * (1 + tension * 1.5), 0.15);
         droneGain.gain.linearRampToValueAtTime(targetVol, now + 0.5);
         setTimeout(updateTensionLoop, 500);
     }
@@ -283,37 +321,27 @@
     }
 
     function playWhisper() {
-        if (!ready || document.hidden) return;
+        if (!ready || document.hidden || !canPlaySound()) return;
         var dur = 2.0 + Math.random() * 3.5;
+        trackSound(dur);
         var now = ctx.currentTime;
-        var len = Math.floor(ctx.sampleRate * dur);
-        var buf = ctx.createBuffer(1, len, ctx.sampleRate);
-        var d = buf.getChannelData(0);
 
-        var formantFreq = 2 + Math.random() * 5;
-        var secondFormant = 0.3 + Math.random() * 0.4;
-        for (var i = 0; i < len; i++) {
-            var t = i / ctx.sampleRate;
-            var mod1 = Math.sin(t * Math.PI * formantFreq);
-            var mod2 = Math.sin(t * Math.PI * formantFreq * secondFormant);
-            var env = Math.max(0, mod1) * (0.5 + 0.5 * mod2);
-            d[i] = (Math.random() * 2 - 1) * env * 0.5;
-        }
-
+        // Use pre-generated noise buffer instead of per-call allocation
         var src = ctx.createBufferSource();
-        src.buffer = buf;
+        src.buffer = sharedLongNoiseBuffer;
 
         // Comb filtering to make the whisper sound like a throat
         var throatDelay = ctx.createDelay();
         throatDelay.delayTime.value = 0.002 + Math.random() * 0.003;
         var throatFb = ctx.createGain();
-        throatFb.gain.value = 0.5;
+        throatFb.gain.value = 0.45;
         throatDelay.connect(throatFb); throatFb.connect(throatDelay);
         src.connect(throatDelay);
 
         var filt1 = ctx.createBiquadFilter(); filt1.type = 'bandpass'; filt1.frequency.value = 600 + Math.random() * 800; filt1.Q.value = 2;
         var filt2 = ctx.createBiquadFilter(); filt2.type = 'highpass'; filt2.frequency.value = 2000;
 
+        // Anchor rule: setValueAtTime before every ramp
         var g = ctx.createGain();
         g.gain.setValueAtTime(0, now);
         g.gain.linearRampToValueAtTime(CONFIG.audio.whisperVolume, now + 0.2);
@@ -321,15 +349,15 @@
         g.gain.linearRampToValueAtTime(0, now + dur);
 
         var pan = ctx.createStereoPanner();
-        pan.pan.value = (Math.random() - 0.5) * 1.5;
+        pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
         pan.pan.linearRampToValueAtTime((Math.random() - 0.5) * 1.5, now + dur);
 
         throatDelay.connect(filt1);
         filt1.connect(filt2);
         filt2.connect(g);
         g.connect(pan);
-        pan.connect(master);
-        pan.connect(reverbNode); // Wet sound
+        pan.connect(effectBus);
+        pan.connect(reverbNode);
 
         src.start(now);
         src.stop(now + dur);
@@ -337,8 +365,9 @@
 
     // --- ENHANCED HEARTBEAT ---
     function playHeartbeat(beats) {
-        if (!ready) return;
+        if (!ready || !canPlaySound()) return;
         beats = beats || 6;
+        trackSound(beats * 0.75);
         var now = ctx.currentTime;
 
         for (var i = 0; i < beats; i++) {
@@ -356,7 +385,7 @@
             
             var shaper = ctx.createWaveShaper();
             shaper.curve = new Float32Array([-0.8, 0, 0.8]);
-            o1.connect(shaper); shaper.connect(g1); g1.connect(master);
+            o1.connect(shaper); shaper.connect(g1); g1.connect(effectBus);
             o1.start(t); o1.stop(t + 0.35);
 
             // Dub - Heavier follow up
@@ -368,7 +397,7 @@
             g2.gain.setValueAtTime(0, t + 0.18);
             g2.gain.linearRampToValueAtTime(CONFIG.audio.heartbeatVolume * 0.8, t + 0.22);
             g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-            o2.connect(g2); g2.connect(master);
+            o2.connect(g2); g2.connect(effectBus);
             o2.start(t + 0.18); o2.stop(t + 0.55);
         }
 
@@ -384,7 +413,8 @@
 
     // --- ORGANIC SHARP STINGER (FM Synthesis) ---
     function playSharpTone() {
-        if (!ready) return;
+        if (!ready || !canPlaySound()) return;
+        trackSound(0.8);
         var now = ctx.currentTime;
         var dur = 0.8;
 
@@ -411,12 +441,12 @@
 
         var g = ctx.createGain();
         g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(CONFIG.audio.stingerVolume * 1.2, now + 0.02);
+        g.gain.linearRampToValueAtTime(CONFIG.audio.stingerVolume, now + 0.02);
         g.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
         carrier.connect(filter);
         filter.connect(g);
-        g.connect(master);
+        g.connect(effectBus);
         g.connect(reverbNode);
 
         carrier.start(now);
@@ -427,24 +457,21 @@
 
     // --- METAL SCRAPE (Comb Filtering) ---
     function playMetalScrape() {
-        if (!ready) return;
-        var now = ctx.currentTime;
+        if (!ready || !canPlaySound()) return;
         var dur = 2.0 + Math.random() * 1.5;
+        trackSound(dur);
+        var now = ctx.currentTime;
 
-        var len = Math.floor(ctx.sampleRate * dur);
-        var buf = ctx.createBuffer(1, len, ctx.sampleRate);
-        var d = buf.getChannelData(0);
-        for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-
+        // Use pre-generated noise buffer
         var src = ctx.createBufferSource();
-        src.buffer = buf;
+        src.buffer = sharedNoiseBuffer;
 
         var combDelay = ctx.createDelay();
         combDelay.delayTime.setValueAtTime(0.003, now); 
         combDelay.delayTime.exponentialRampToValueAtTime(0.015, now + dur); 
         
         var combFb = ctx.createGain();
-        combFb.gain.value = 0.96; 
+        combFb.gain.value = 0.82; // Lower feedback prevents self-oscillation buildup
         
         var damp = ctx.createBiquadFilter();
         damp.type = 'lowpass';
@@ -462,11 +489,11 @@
         g.gain.linearRampToValueAtTime(0, now + dur);
 
         var pan = ctx.createStereoPanner();
-        pan.pan.value = (Math.random() - 0.5) * 1.5;
+        pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
 
         combDelay.connect(g);
         g.connect(pan);
-        pan.connect(master);
+        pan.connect(effectBus);
         pan.connect(reverbNode);
 
         src.start(now);
@@ -475,9 +502,10 @@
 
     // --- REVERSE SWELL (Cavernous FM) ---
     function playReverseSwell() {
-        if (!ready) return;
-        var now = ctx.currentTime;
+        if (!ready || !canPlaySound()) return;
         var dur = 2.5 + Math.random() * 1.5;
+        trackSound(dur);
+        var now = ctx.currentTime;
 
         var baseFreq = 80 + Math.random() * 40;
         
@@ -496,7 +524,7 @@
 
         var swellGain = ctx.createGain();
         swellGain.gain.setValueAtTime(0.001, now);
-        swellGain.gain.exponentialRampToValueAtTime(CONFIG.audio.sharpVolume * 1.5, now + dur - 0.05);
+        swellGain.gain.exponentialRampToValueAtTime(CONFIG.audio.sharpVolume, now + dur - 0.05);
         swellGain.gain.setValueAtTime(0, now + dur);
 
         var lp = ctx.createBiquadFilter();
@@ -506,7 +534,7 @@
 
         osc.connect(swellGain);
         swellGain.connect(lp);
-        lp.connect(master);
+        lp.connect(effectBus);
         lp.connect(reverbNode);
 
         osc.start(now); mod.start(now);
@@ -515,7 +543,8 @@
 
     // --- IMPACT HIT (Deep room boom) ---
     function playImpact() {
-        if (!ready) return;
+        if (!ready || !canPlaySound()) return;
+        trackSound(1.2);
         var now = ctx.currentTime;
 
         var o = ctx.createOscillator();
@@ -531,30 +560,27 @@
         var shaper = ctx.createWaveShaper();
         shaper.curve = new Float32Array([-0.5, 0, 0.5]); 
 
-        o.connect(shaper); shaper.connect(g); g.connect(master); g.connect(reverbNode);
+        o.connect(shaper); shaper.connect(g); g.connect(effectBus); g.connect(reverbNode);
         o.start(now); o.stop(now + 1.2);
 
-        var nLen = Math.floor(ctx.sampleRate * 0.15);
-        var nBuf = ctx.createBuffer(1, nLen, ctx.sampleRate);
-        var nD = nBuf.getChannelData(0);
-        for (var i = 0; i < nLen; i++) nD[i] = Math.random() * 2 - 1;
-
+        // Use pre-generated noise buffer for transient layer
         var nSrc = ctx.createBufferSource();
-        nSrc.buffer = nBuf;
+        nSrc.buffer = sharedNoiseBuffer;
         var nG = ctx.createGain();
-        nG.gain.setValueAtTime(CONFIG.audio.impactVolume * 0.8, now);
+        nG.gain.setValueAtTime(CONFIG.audio.impactVolume * 0.6, now);
         nG.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
         var nLP = ctx.createBiquadFilter();
         nLP.type = 'lowpass'; nLP.frequency.value = 400;
 
-        nSrc.connect(nLP); nLP.connect(nG); nG.connect(master); nG.connect(reverbNode);
+        nSrc.connect(nLP); nLP.connect(nG); nG.connect(effectBus); nG.connect(reverbNode);
         nSrc.start(now); nSrc.stop(now + 0.15);
     }
 
     // --- LOW RUMBLE ---
     function playRumble(duration) {
-        if (!ready) return;
+        if (!ready || !canPlaySound()) return;
         duration = duration || 4;
+        trackSound(duration);
         var now = ctx.currentTime;
 
         var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 25;
@@ -566,12 +592,12 @@
         
         var g = ctx.createGain();
         g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(0.25, now + duration * 0.3);
-        g.gain.setValueAtTime(0.25, now + duration * 0.7);
+        g.gain.linearRampToValueAtTime(0.12, now + duration * 0.3);
+        g.gain.setValueAtTime(0.12, now + duration * 0.7);
         g.gain.linearRampToValueAtTime(0, now + duration);
 
         o.connect(g); o2.connect(g);
-        g.connect(master);
+        g.connect(effectBus);
         g.connect(reverbNode);
         
         o.start(now); o2.start(now);
@@ -591,7 +617,9 @@
         master.gain.linearRampToValueAtTime(0, now + 0.01);
 
         setTimeout(function() {
-            master.gain.linearRampToValueAtTime(CONFIG.audio.masterVolume, ctx.currentTime + 2);
+            var resumeTime = ctx.currentTime;
+            master.gain.setValueAtTime(0, resumeTime);
+            master.gain.linearRampToValueAtTime(CONFIG.audio.masterVolume, resumeTime + 2);
             startDrone();
         }, 3000 + Math.random() * 2000);
     }
@@ -604,56 +632,50 @@
     }
 
     function playBreath() {
-        if (!ready || document.hidden) return;
-        var now = ctx.currentTime;
+        if (!ready || document.hidden || !canPlaySound()) return;
         var dur = 2.5 + Math.random() * 2;
-        var len = Math.floor(ctx.sampleRate * dur);
-        var buf = ctx.createBuffer(1, len, ctx.sampleRate);
-        var d = buf.getChannelData(0);
+        trackSound(dur);
+        var now = ctx.currentTime;
 
-        for (var i = 0; i < len; i++) {
-            var t = i / len;
-            var env;
-            if (t < 0.4) env = Math.sin(t / 0.4 * Math.PI * 0.5);
-            else if (t < 0.5) env = Math.cos((t - 0.4) / 0.1 * Math.PI * 0.5) * 0.2;
-            else env = Math.sin((t - 0.5) / 0.5 * Math.PI) * 0.8;
-            d[i] = (Math.random() * 2 - 1) * env;
-        }
-
-        var src = ctx.createBufferSource(); src.buffer = buf;
+        // Use pre-generated noise buffer — shape via gain envelope + filters
+        var src = ctx.createBufferSource();
+        src.buffer = sharedLongNoiseBuffer;
 
         var throatDelay = ctx.createDelay();
         throatDelay.delayTime.value = 0.005;
-        var throatFb = ctx.createGain(); throatFb.gain.value = 0.45;
+        var throatFb = ctx.createGain(); throatFb.gain.value = 0.40;
         throatDelay.connect(throatFb); throatFb.connect(throatDelay);
         src.connect(throatDelay);
 
         var f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 350; f1.Q.value = 1.2;
         var f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 1100; f2.Q.value = 2;
 
+        // Breath-shaped envelope: inhale ramp, brief pause, exhale swell
         var g = ctx.createGain();
         g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(CONFIG.audio.breathVolume, now + 0.3);
-        g.gain.setValueAtTime(CONFIG.audio.breathVolume, now + dur * 0.8);
+        g.gain.linearRampToValueAtTime(CONFIG.audio.breathVolume, now + dur * 0.3);
+        g.gain.linearRampToValueAtTime(CONFIG.audio.breathVolume * 0.15, now + dur * 0.45);
+        g.gain.linearRampToValueAtTime(CONFIG.audio.breathVolume * 0.7, now + dur * 0.75);
         g.gain.linearRampToValueAtTime(0, now + dur);
 
         var pan = ctx.createStereoPanner();
-        pan.pan.value = (Math.random() - 0.5) * 1.5;
+        pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
 
         throatDelay.connect(f1); throatDelay.connect(f2);
         f1.connect(g); f2.connect(g);
         g.connect(pan);
-        pan.connect(master);
-        pan.connect(reverbNode); 
-        
+        pan.connect(effectBus);
+        pan.connect(reverbNode);
+
         src.start(now); src.stop(now + dur);
     }
 
     // --- DISSONANT STRING CHORD ---
     function playDissonantChord() {
-        if (!ready) return;
-        var now = ctx.currentTime;
+        if (!ready || !canPlaySound()) return;
         var dur = 4 + Math.random() * 3;
+        trackSound(dur);
+        var now = ctx.currentTime;
 
         var base = 150 + Math.random() * 100;
         var intervals = [1, 1.059, 1.414, 1.887]; 
@@ -679,11 +701,12 @@
         }
 
         var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500;
-        var pan = ctx.createStereoPanner(); pan.pan.value = (Math.random() - 0.5) * 1.2;
+        var pan = ctx.createStereoPanner();
+        pan.pan.setValueAtTime((Math.random() - 0.5) * 1.2, now);
 
         chordGain.connect(lp); lp.connect(pan);
-        pan.connect(master);
-        pan.connect(reverbNode); 
+        pan.connect(effectBus);
+        pan.connect(reverbNode);
     }
 
     // =========================================================================
@@ -1112,7 +1135,7 @@
         var pct = window.scrollY / total;
         scrollIntensity = Math.min(pct * 1.4, 1);
         setVignetteIntensity(CONFIG.visual.vignetteBase + scrollIntensity * 0.2);
-        setDroneIntensity(scrollIntensity * 0.5);
+        setDroneIntensity(scrollIntensity * 0.3);
         // Adjust animation durations based on intensity
         CONFIG.visual.glitchDuration = 300 / (1 + scrollIntensity);
         CONFIG.visual.scrambleDuration = 1000 / (1 + scrollIntensity);
