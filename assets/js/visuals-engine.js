@@ -182,8 +182,8 @@
 
                 // 1. THE VORTEX / CHASM (Main Page Special)
                 if (u_isMainPage > 0.5) {
-                    float swirl = 5.2 * exp(-dist * 1.6);
-                    uv *= rot(u_time * 0.3 + swirl);
+                    float swirl = 5.2 * exp(-dist * 1.2);
+                    uv *= rot(u_time * 0.23 + swirl);
                 }
 
                 // 2. THE EVENT HORIZON (Peripheral Refraction)
@@ -335,6 +335,42 @@
                     photonRing *= 0.7 + ringNoise * 0.3;
                     vec3 ringColor = mix(vec3(1.0, 0.5, 0.1), vec3(1.0, 0.9, 0.7), photonRing);
                     col += ringColor * photonRing * 1.37;
+
+                    // Gravitational lensing — far-side disc image arcing over the top
+                    // The accretion disc behind the BH is bent by gravity into a band
+                    // that wraps above (and below) the shadow
+                    float lensAngle = atan(uv.y, uv.x);
+
+                    // Top arc: elliptical path offset upward from center
+                    vec2 topArcCenter = vec2(0.0, -0.08); // offset down so arc wraps over top
+                    float topArcDist = length(uv - topArcCenter);
+                    float topArcRadius = 0.42;
+                    float topArcBand = smoothstep(0.04, 0.0, abs(topArcDist - topArcRadius));
+                    // Only show upper half of the ellipse (the lensed far side)
+                    float topMask = smoothstep(-0.05, 0.15, uv.y);
+                    topArcBand *= topMask;
+
+                    // Bottom arc: underside lensing, dimmer
+                    vec2 botArcCenter = vec2(0.0, 0.06);
+                    float botArcDist = length(uv - botArcCenter);
+                    float botArcRadius = 0.40;
+                    float botArcBand = smoothstep(0.03, 0.0, abs(botArcDist - botArcRadius));
+                    float botMask = smoothstep(0.05, -0.12, uv.y);
+                    botArcBand *= botMask;
+
+                    // Doppler beaming — left side brighter (approaching), right dimmer
+                    float doppler = 0.6 + 0.4 * sin(lensAngle + 1.57); // peaks on left
+
+                    // Texture the bands with noise so they aren't perfectly smooth
+                    float lensNoise = noise(vec2(lensAngle * 12.0 + u_time * 0.15, dist * 6.0));
+                    float lensDetail = 0.7 + lensNoise * 0.3;
+
+                    // Color: hot orange-white gradient matching the accretion disc
+                    vec3 lensColor = mix(vec3(0.8, 0.2, 0.0), vec3(1.0, 0.7, 0.3), lensNoise);
+
+                    // Combine top and bottom arcs
+                    float lensBand = topArcBand + botArcBand * 0.5; // underside is dimmer
+                    col += lensColor * lensBand * doppler * lensDetail * 0.9;
 
                     // Leaking / Bleeding elements
                     float leak = pow(fbm(uv * rot(u_time * 0.1) * 3.0), 3.0) * density;
