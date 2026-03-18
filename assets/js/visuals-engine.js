@@ -68,8 +68,14 @@
             canvas.style.left = '0';
             canvas.style.width = '100vw';
             canvas.style.height = '100vh';
-            canvas.style.zIndex = '0';
+            canvas.style.zIndex = '-1'; // Place behind content
             canvas.style.pointerEvents = 'none';
+            canvas.style.opacity = '1'; // Force visibility
+            canvas.classList.add('active');
+
+            // Remove body background to let canvas show through
+            document.body.style.background = 'none';
+            document.body.style.backgroundColor = '#050505';
 
             scene = new THREE.Scene();
             camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -98,7 +104,8 @@
         const isMainPage = path.endsWith('/') || 
                            path.endsWith('index.html') || 
                            path.endsWith('index-refactored.html') ||
-                           document.querySelector('.acts-navigation') !== null;
+                           document.querySelector('.acts-navigation') !== null ||
+                           document.querySelector('.title') !== null && !document.querySelector('article');
 
         // Uniforms for the fragment shader
         uniforms = {
