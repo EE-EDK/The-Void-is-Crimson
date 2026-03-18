@@ -532,14 +532,21 @@ function testMetalScrape() {
   var now = ctx.currentTime;
 
   var src = ctx.createBufferSource(); src.buffer = window._noiseBuf;
-  var combDelay = ctx.createDelay();
-  combDelay.delayTime.setValueAtTime(0.003, now);
-  combDelay.delayTime.exponentialRampToValueAtTime(0.015, now + dur);
-  var combFb = ctx.createGain(); combFb.gain.value = 0.65;
-  var damp = ctx.createBiquadFilter(); damp.type = 'lowpass'; damp.frequency.value = 2000;
 
-  src.connect(combDelay); combDelay.connect(damp);
-  damp.connect(combFb); combFb.connect(combDelay);
+  // Resonant bandpass chain — no feedback loop
+  var bp1 = ctx.createBiquadFilter(); bp1.type = 'bandpass';
+  bp1.frequency.setValueAtTime(800, now);
+  bp1.frequency.exponentialRampToValueAtTime(2500, now + dur);
+  bp1.Q.value = 8;
+
+  var bp2 = ctx.createBiquadFilter(); bp2.type = 'bandpass';
+  bp2.frequency.setValueAtTime(1200, now);
+  bp2.frequency.exponentialRampToValueAtTime(3500, now + dur);
+  bp2.Q.value = 6;
+
+  var hp = ctx.createBiquadFilter(); hp.type = 'highpass';
+  hp.frequency.setValueAtTime(400, now);
+  hp.frequency.exponentialRampToValueAtTime(1000, now + dur);
 
   var g = ctx.createGain();
   g.gain.setValueAtTime(0, now);
@@ -547,10 +554,17 @@ function testMetalScrape() {
   g.gain.setValueAtTime(0.08, now + dur * 0.7);
   g.gain.linearRampToValueAtTime(0, now + dur);
 
+  var merge = ctx.createGain(); merge.gain.value = 0.7;
+  src.connect(hp);
+  hp.connect(bp1); hp.connect(bp2);
+  bp1.connect(merge); bp2.connect(merge);
+  merge.connect(g);
+
   var pan = ctx.createStereoPanner();
   pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
-  combDelay.connect(g); g.connect(pan);
-  pan.connect(master); pan.connect(window._reverbNode);
+  g.connect(pan);
+  pan.connect(master);
+  // No reverb send
   src.start(now); src.stop(now + dur); activeNodes.push(src);
 }
 

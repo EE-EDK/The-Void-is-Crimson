@@ -456,32 +456,34 @@
         modulator.stop(now + dur);
     }
 
-    // --- METAL SCRAPE (Comb Filtering) ---
+    // --- METAL SCRAPE (Filtered noise, no comb filter feedback loop) ---
     function playMetalScrape() {
         if (!ready || !canPlaySound()) return;
         var dur = 2.0 + Math.random() * 1.5;
         trackSound(dur);
         var now = ctx.currentTime;
 
-        // Use pre-generated noise buffer
         var src = ctx.createBufferSource();
         src.buffer = sharedNoiseBuffer;
 
-        var combDelay = ctx.createDelay();
-        combDelay.delayTime.setValueAtTime(0.003, now); 
-        combDelay.delayTime.exponentialRampToValueAtTime(0.015, now + dur); 
-        
-        var combFb = ctx.createGain();
-        combFb.gain.value = 0.65; // Well below self-oscillation threshold
+        // Resonant bandpass chain instead of comb filter — no feedback loop to accumulate
+        var bp1 = ctx.createBiquadFilter();
+        bp1.type = 'bandpass';
+        bp1.frequency.setValueAtTime(800, now);
+        bp1.frequency.exponentialRampToValueAtTime(2500, now + dur);
+        bp1.Q.value = 8; // Narrow resonance = metallic character
 
-        var damp = ctx.createBiquadFilter();
-        damp.type = 'lowpass';
-        damp.frequency.value = 2000; // Was 4000 — tighter damping kills high-frequency screech
+        var bp2 = ctx.createBiquadFilter();
+        bp2.type = 'bandpass';
+        bp2.frequency.setValueAtTime(1200, now);
+        bp2.frequency.exponentialRampToValueAtTime(3500, now + dur);
+        bp2.Q.value = 6;
 
-        src.connect(combDelay);
-        combDelay.connect(damp);
-        damp.connect(combFb);
-        combFb.connect(combDelay);
+        // Slight pitch sweep via additional filter for "scraping" motion
+        var hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.setValueAtTime(400, now);
+        hp.frequency.exponentialRampToValueAtTime(1000, now + dur);
 
         var g = ctx.createGain();
         g.gain.setValueAtTime(0, now);
@@ -489,13 +491,23 @@
         g.gain.setValueAtTime(CONFIG.audio.scrapeVolume, now + dur * 0.7);
         g.gain.linearRampToValueAtTime(0, now + dur);
 
+        // Merge two resonant bands for richer metallic tone
+        var merge = ctx.createGain();
+        merge.gain.value = 0.7;
+
+        src.connect(hp);
+        hp.connect(bp1);
+        hp.connect(bp2);
+        bp1.connect(merge);
+        bp2.connect(merge);
+        merge.connect(g);
+
         var pan = ctx.createStereoPanner();
         pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
 
-        combDelay.connect(g);
         g.connect(pan);
         pan.connect(effectBus);
-        pan.connect(reverbNode);
+        // No reverb send — prevents accumulation in reverb feedback network
 
         src.start(now);
         src.stop(now + dur);
