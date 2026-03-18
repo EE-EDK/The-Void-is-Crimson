@@ -417,8 +417,9 @@ body.fade-out-to-next {
         overflow-wrap: break-word;
     }
 
-    /* Reduce animation complexity on mobile */
-    * {
+    /* Reduce animation complexity on mobile - only target content animations,
+       not horror effects which have their own carefully timed durations */
+    h1, h2, p, .subtitle {
         animation-duration: 0.5s !important;
     }
 }

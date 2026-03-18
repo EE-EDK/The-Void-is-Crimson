@@ -108,8 +108,10 @@
     }
 
     // --- ALEATORIC DISSONANT DRONE ---
+    var droneActive = false;
     function startDrone() {
-        if (!ready) return;
+        if (!ready || droneActive) return;
+        droneActive = true;
 
         droneGain = ctx.createGain();
         droneGain.gain.value = 0;
@@ -202,8 +204,11 @@
 
     function updateTensionLoop() {
         if (!ready) return;
+        // Decay tension gradually so it doesn't stay maxed forever
+        tension *= 0.97;
+        if (tension < 0.01) tension = 0;
         var now = ctx.currentTime;
-        var targetVol = CONFIG.audio.droneBase * (1 + tension * 4);
+        var targetVol = Math.min(CONFIG.audio.droneBase * (1 + tension * 3), 0.4);
         droneGain.gain.linearRampToValueAtTime(targetVol, now + 0.5);
         setTimeout(updateTensionLoop, 500);
     }
@@ -227,7 +232,7 @@
     }
 
     function setDroneIntensity(intensity) {
-        tension = Math.max(tension, intensity);
+        tension = Math.max(tension, Math.min(intensity, 1.0));
     }
 
     // --- ENHANCED WHISPERS ---
@@ -264,9 +269,9 @@
 
         // Comb filtering to make the whisper sound like a throat
         var throatDelay = ctx.createDelay();
-        throatDelay.delayTime.value = 0.002 + Math.random() * 0.003; 
+        throatDelay.delayTime.value = 0.002 + Math.random() * 0.003;
         var throatFb = ctx.createGain();
-        throatFb.gain.value = 0.8;
+        throatFb.gain.value = 0.5;
         throatDelay.connect(throatFb); throatFb.connect(throatDelay);
         src.connect(throatDelay);
 
@@ -543,10 +548,12 @@
         var now = ctx.currentTime;
         droneNodes.forEach(function(node) { try { node.stop(now); } catch(e) {} });
         droneNodes = [];
+        droneActive = false;
+        tension = 0;
         master.gain.cancelScheduledValues(now);
         master.gain.setValueAtTime(master.gain.value, now);
         master.gain.linearRampToValueAtTime(0, now + 0.01);
-        
+
         setTimeout(function() {
             master.gain.linearRampToValueAtTime(CONFIG.audio.masterVolume, ctx.currentTime + 2);
             startDrone();
@@ -580,8 +587,8 @@
         var src = ctx.createBufferSource(); src.buffer = buf;
 
         var throatDelay = ctx.createDelay();
-        throatDelay.delayTime.value = 0.005; 
-        var throatFb = ctx.createGain(); throatFb.gain.value = 0.7;
+        throatDelay.delayTime.value = 0.005;
+        var throatFb = ctx.createGain(); throatFb.gain.value = 0.45;
         throatDelay.connect(throatFb); throatFb.connect(throatDelay);
         src.connect(throatDelay);
 
