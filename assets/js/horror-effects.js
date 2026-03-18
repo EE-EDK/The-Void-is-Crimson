@@ -59,26 +59,30 @@
     var tension = 0; // 0 to 1 scale for audio intensity
 
     function initAudio() {
-        if (ready) return;
+        // If context exists but is suspended, try to resume it (needs user gesture)
+        if (ctx) {
+            if (ctx.state === 'suspended') ctx.resume();
+            return;
+        }
         try {
             ctx = new (window.AudioContext || window.webkitAudioContext)();
             master = ctx.createGain();
             master.gain.value = CONFIG.audio.masterVolume;
             master.connect(ctx.destination);
-            
+
             // --- SPATIAL REVERB BUS (Creates a vast, cavernous environment) ---
             reverbNode = ctx.createGain();
             reverbNode.gain.value = 0.6; // Wet send level
-            
+
             var delayL = ctx.createDelay(); delayL.delayTime.value = 0.27;
             var delayR = ctx.createDelay(); delayR.delayTime.value = 0.37;
             var fbL = ctx.createGain(); fbL.gain.value = 0.45;
             var fbR = ctx.createGain(); fbR.gain.value = 0.45;
             var crossL = ctx.createGain(); crossL.gain.value = 0.25;
             var crossR = ctx.createGain(); crossR.gain.value = 0.25;
-            
-            var damp = ctx.createBiquadFilter(); 
-            damp.type = 'lowpass'; 
+
+            var damp = ctx.createBiquadFilter();
+            damp.type = 'lowpass';
             damp.frequency.value = 2500;
 
             reverbNode.connect(damp);
