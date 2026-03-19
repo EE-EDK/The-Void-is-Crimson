@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shader Tuner — Top Disc Overlay on Void</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; font-family: monospace; color: #ccc; }
+canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+
+#panel {
+  position: fixed; top: 0; right: 0; width: 360px; height: 100vh;
+  background: rgba(0,0,0,0.92); border-left: 1px solid #333;
+  overflow-y: auto; z-index: 100; padding: 8px 10px;
+  font-size: 11px;
+}
+#panel::-webkit-scrollbar { width: 6px; }
+#panel::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+#panel h1 { color: #c44; font-size: 13px; margin-bottom: 6px; letter-spacing: 1px; }
+.subtitle { color: #888; font-size: 10px; margin-bottom: 8px; }
+
+.group { margin-bottom: 10px; border: 1px solid #282828; border-radius: 3px; }
+.group-header {
+  background: #181818; padding: 5px 8px; cursor: pointer; font-size: 11px;
+  color: #a66; font-weight: bold; user-select: none; display: flex;
+  justify-content: space-between; align-items: center;
+}
+.group-header:hover { background: #222; }
+.group-header .arrow { transition: transform 0.2s; }
+.group-header.collapsed .arrow { transform: rotate(-90deg); }
+.group-body { padding: 4px 8px 8px; }
+.group-body.hidden { display: none; }
+
+.ctrl { margin-bottom: 5px; }
+.ctrl label { display: flex; justify-content: space-between; margin-bottom: 1px; color: #999; }
+.ctrl label span.val { color: #6a6; font-weight: bold; }
+.ctrl input[type=range] {
+  width: 100%; height: 14px; -webkit-appearance: none; background: #222;
+  border-radius: 2px; outline: none;
+}
+.ctrl input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 10px; height: 14px; background: #888;
+  border-radius: 2px; cursor: pointer;
+}
+.ctrl input[type=range]::-webkit-slider-thumb:hover { background: #aaa; }
+
+.select-ctrl { margin-bottom: 5px; }
+.select-ctrl label { display: flex; justify-content: space-between; margin-bottom: 2px; color: #999; }
+.select-ctrl select {
+  width: 100%; padding: 3px; background: #222; border: 1px solid #444;
+  color: #ccc; font-family: monospace; font-size: 10px; border-radius: 2px;
+}
+
+.btn-row { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+.btn-row button {
+  flex: 1; padding: 5px; background: #222; border: 1px solid #444;
+  color: #ccc; cursor: pointer; font-family: monospace; font-size: 10px;
+  border-radius: 2px; min-width: 60px;
+}
+.btn-row button:hover { background: #333; }
+.btn-row button.active { background: #433; border-color: #a44; color: #faa; }
+
+#toggle-panel {
+  position: fixed; top: 8px; right: 8px; z-index: 200;
+  background: rgba(0,0,0,0.7); border: 1px solid #555; color: #ccc;
+  padding: 4px 10px; cursor: pointer; font-family: monospace; font-size: 11px;
+  border-radius: 3px; display: none;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<button id="toggle-panel" onclick="document.getElementById('panel').style.display='block';this.style.display='none';">Show Panel</button>
+
+<div id="panel">
+<h1>TOP DISC OVERLAY TUNER</h1>
+<div class="subtitle">Composites raytraced accretion disc onto the existing void shader</div>
+<div class="btn-row">
+  <button onclick="exportValues()">Copy Values</button>
+  <button onclick="resetAll()">Reset All</button>
+  <button id="btn-solo-void" onclick="toggleSolo('void')">Solo Void</button>
+  <button id="btn-solo-disc" onclick="toggleSolo('disc')">Solo Disc</button>
+  <button onclick="document.getElementById('panel').style.display='none';document.getElementById('toggle-panel').style.display='block';">Hide</button>
+</div>
+<div id="controls"></div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// PARAMETER DEFINITIONS
+// ============================================================
+var PARAMS = {
+
+  // ── COMPOSITE ──
+  comp_opacity:       { group: 'Composite',         label: 'Disc Opacity',          min: 0.0, max: 1.5,  val: 1.0,   step: 0.02 },
+  comp_blend:         { group: 'Composite',         label: 'Blend Mode (0=Add,1=Scr,2=Over)', min: 0, max: 2, val: 0, step: 1, type: 'select', options: ['Additive','Screen','Over (Alpha)'] },
+  comp_y_offset:      { group: 'Composite',         label: 'Y Offset',              min: -0.5, max: 0.5, val: 0.0,   step: 0.005 },
+  comp_x_offset:      { group: 'Composite',         label: 'X Offset',              min: -0.5, max: 0.5, val: 0.0,   step: 0.005 },
+  comp_scale:         { group: 'Composite',         label: 'Disc Scale',            min: 0.2, max: 3.0,  val: 1.0,   step: 0.02 },
+  comp_disc_bright:   { group: 'Composite',         label: 'Disc Brightness Mult',  min: 0.0, max: 3.0,  val: 1.0,   step: 0.05 },
+  comp_void_bright:   { group: 'Composite',         label: 'Void Brightness Mult',  min: 0.0, max: 2.0,  val: 1.0,   step: 0.05 },
+  comp_mask_radius:   { group: 'Composite',         label: 'Disc Mask Radius',      min: 0.0, max: 2.0,  val: 0.0,   step: 0.02 },
+  comp_mask_soft:     { group: 'Composite',         label: 'Disc Mask Softness',    min: 0.0, max: 0.5,  val: 0.1,   step: 0.01 },
+
+  // ── TOP DISC: CAMERA ──
+  cam_distance:       { group: 'Disc — Camera',     label: 'Distance (Rs)',         min: 5,   max: 50,   val: 13.5,  step: 0.5 },
+  cam_inclination:    { group: 'Disc — Camera',     label: 'Inclination (deg)',     min: 0,   max: 90,   val: 86.0,  step: 0.5 },
+  cam_fov:            { group: 'Disc — Camera',     label: 'FOV (deg)',             min: 10,  max: 90,   val: 67.0,  step: 1.0 },
+
+  // ── TOP DISC: ACCRETION ──
+  disk_inner:         { group: 'Disc — Accretion',  label: 'Inner Radius (Rs)',     min: 1.5, max: 6.0,  val: 3.0,   step: 0.1 },
+  disk_outer:         { group: 'Disc — Accretion',  label: 'Outer Radius (Rs)',     min: 4.0, max: 20.0, val: 7.5,   step: 0.5 },
+  disk_brightness:    { group: 'Disc — Accretion',  label: 'Brightness',            min: 0.1, max: 8.0,  val: 3.2,   step: 0.1 },
+  disk_temp_inner:    { group: 'Disc — Accretion',  label: 'Inner Temperature',     min: 0.1, max: 5.0,  val: 0.6,   step: 0.05 },
+  disk_temp_falloff:  { group: 'Disc — Accretion',  label: 'Temp Falloff',          min: 0.1, max: 2.0,  val: 0.5,   step: 0.05 },
+  disk_noise_scale:   { group: 'Disc — Accretion',  label: 'Noise Scale',           min: 1.0, max: 30.0, val: 12.0,  step: 1.0 },
+  disk_noise_str:     { group: 'Disc — Accretion',  label: 'Noise Strength',        min: 0.0, max: 1.0,  val: 0.6,   step: 0.05 },
+  disk_rot_speed:     { group: 'Disc — Accretion',  label: 'Rotation Speed',        min: 0.0, max: 4.0,  val: 1.5,   step: 0.1 },
+
+  // ── TOP DISC: DOPPLER ──
+  doppler_str:        { group: 'Disc — Doppler',    label: 'Doppler Strength',      min: 0.0, max: 2.0,  val: 1.0,   step: 0.05 },
+  doppler_boost:      { group: 'Disc — Doppler',    label: 'Beaming Boost',         min: 0.5, max: 4.0,  val: 2.0,   step: 0.1 },
+
+  // ── TOP DISC: STARS ──
+  disc_stars_brightness: { group: 'Disc — Starfield', label: 'Brightness',          min: 0.0, max: 5.0,  val: 0.0,   step: 0.1 },
+  disc_stars_density: { group: 'Disc — Starfield',  label: 'Density',               min: 20,  max: 500,  val: 310.0, step: 10 },
+
+  // ── TOP DISC: POST ──
+  disc_bloom_str:     { group: 'Disc — Post',       label: 'Bloom Strength',        min: 0.0, max: 3.0,  val: 2.0,   step: 0.05 },
+  disc_vignette_str:  { group: 'Disc — Post',       label: 'Vignette',              min: 0.0, max: 1.0,  val: 0.0,   step: 0.05 },
+  disc_overall_bright:{ group: 'Disc — Post',       label: 'Overall Brightness',    min: 0.1, max: 3.0,  val: 0.65,  step: 0.05 },
+  disc_grain:         { group: 'Disc — Post',       label: 'Film Grain',            min: 0.0, max: 0.1,  val: 0.0,   step: 0.002 },
+
+  // ── TOP DISC: INTEGRATION ──
+  max_steps:          { group: 'Disc — Integration', label: 'Max Steps',            min: 50,  max: 800,  val: 400.0, step: 10 },
+  step_size:          { group: 'Disc — Integration', label: 'Step Size',            min: 0.005, max: 0.1, val: 0.03, step: 0.005 },
+};
+
+var DEFAULTS = {};
+Object.keys(PARAMS).forEach(function(k) { DEFAULTS[k] = PARAMS[k].val; });
+
+var soloMode = 'none'; // 'none', 'void', 'disc'
+
+// ============================================================
+// BUILD UI
+// ============================================================
+function buildUI() {
+  var container = document.getElementById('controls');
+  var groups = {};
+  Object.keys(PARAMS).forEach(function(key) {
+    var p = PARAMS[key];
+    if (!groups[p.group]) groups[p.group] = [];
+    groups[p.group].push({ key: key, param: p });
+  });
+
+  Object.keys(groups).forEach(function(groupName) {
+    var div = document.createElement('div');
+    div.className = 'group';
+    var header = document.createElement('div');
+    header.className = 'group-header';
+    header.innerHTML = '<span>' + groupName + '</span><span class="arrow">▼</span>';
+    header.onclick = function() { toggleGroup(this); };
+    div.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'group-body';
+
+    groups[groupName].forEach(function(item) {
+      if (item.param.type === 'select') {
+        var sc = document.createElement('div');
+        sc.className = 'select-ctrl';
+        var opts = item.param.options.map(function(o, i) {
+          return '<option value="' + i + '"' + (i === item.param.val ? ' selected' : '') + '>' + o + '</option>';
+        }).join('');
+        sc.innerHTML = '<label><span>' + item.param.label + '</span></label>' +
+          '<select id="slider-' + item.key + '" onchange="updateParam(\'' + item.key + '\', this.value)">' + opts + '</select>';
+        body.appendChild(sc);
+      } else {
+        var ctrl = document.createElement('div');
+        ctrl.className = 'ctrl';
+        ctrl.innerHTML =
+          '<label><span>' + item.param.label + '</span><span class="val" id="val-' + item.key + '">' + item.param.val + '</span></label>' +
+          '<input type="range" id="slider-' + item.key + '" min="' + item.param.min + '" max="' + item.param.max + '" step="' + item.param.step + '" value="' + item.param.val + '" oninput="updateParam(\'' + item.key + '\', this.value)">';
+        body.appendChild(ctrl);
+      }
+    });
+
+    div.appendChild(body);
+    container.appendChild(div);
+  });
+}
+
+function toggleGroup(header) {
+  header.classList.toggle('collapsed');
+  header.nextElementSibling.classList.toggle('hidden');
+}
+
+function updateParam(key, value) {
+  PARAMS[key].val = parseFloat(value);
+  var valEl = document.getElementById('val-' + key);
+  if (valEl) valEl.textContent = parseFloat(value).toFixed(3);
+  syncUniforms();
+}
+
+function resetAll() {
+  Object.keys(DEFAULTS).forEach(function(k) {
+    PARAMS[k].val = DEFAULTS[k];
+    var slider = document.getElementById('slider-' + k);
+    if (slider) {
+      if (slider.tagName === 'SELECT') slider.value = DEFAULTS[k];
+      else slider.value = DEFAULTS[k];
+    }
+    var valEl = document.getElementById('val-' + k);
+    if (valEl) valEl.textContent = DEFAULTS[k].toFixed(3);
+  });
+  soloMode = 'none';
+  document.getElementById('btn-solo-void').classList.remove('active');
+  document.getElementById('btn-solo-disc').classList.remove('active');
+  syncUniforms();
+}
+
+function toggleSolo(which) {
+  if (soloMode === which) {
+    soloMode = 'none';
+    document.getElementById('btn-solo-void').classList.remove('active');
+    document.getElementById('btn-solo-disc').classList.remove('active');
+  } else {
+    soloMode = which;
+    document.getElementById('btn-solo-void').classList.toggle('active', which === 'void');
+    document.getElementById('btn-solo-disc').classList.toggle('active', which === 'disc');
+  }
+  syncUniforms();
+}
+
+function exportValues() {
+  var lines = ['// Overlay Tuner Export — ' + new Date().toISOString()];
+  Object.keys(PARAMS).forEach(function(k) {
+    if (PARAMS[k].val !== DEFAULTS[k]) {
+      lines.push(k + ': ' + PARAMS[k].val.toFixed(4) + '  // default: ' + DEFAULTS[k]);
+    }
+  });
+  if (lines.length === 1) lines.push('// No values changed from defaults');
+  navigator.clipboard.writeText(lines.join('\n')).then(function() {
+    alert('Copied ' + (lines.length - 1) + ' changed values to clipboard');
+  });
+}
+
+function P(key) { return PARAMS[key].val; }
+
+// ============================================================
+// THREE.JS — DUAL RENDER TARGET COMPOSITING
+// ============================================================
+var voidUniforms = null;
+var discUniforms = null;
+var compUniforms = null;
+var rtVoid, rtDisc;
+
+function initThree() {
+  var canvas = document.getElementById('bg-canvas');
+  var scene = new THREE.Scene();
+  var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: false, antialias: false });
+  var W = window.innerWidth, H = window.innerHeight;
+  renderer.setSize(W, H);
+  // pixelRatio = 1: all passes (render targets + screen) use identical logical dimensions.
+  // Avoids gl_FragCoord vs u_resolution mismatch in composite pass.
+  renderer.setPixelRatio(1);
+  var clock = new THREE.Clock();
+
+  // Render targets use logical pixels to match u_resolution (gl_FragCoord / u_resolution)
+  // The renderer's pixelRatio handles final output scaling to physical pixels.
+  rtVoid = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
+  rtDisc = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
+
+  // --- VOID SHADER (from visuals-engine.js, main page mode) ---
+  var voidScene = new THREE.Scene();
+  voidUniforms = {
+    u_time: { value: 0 }, u_resolution: { value: new THREE.Vector2(W, H) },
+    u_tension: { value: 0 }, u_scroll: { value: 0 },
+    u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
+    u_themeColor: { value: new THREE.Color(0x8b0000) },
+    u_isMainPage: { value: 1.0 }
+  };
+
+  var voidVert = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+  var voidFrag = [
+    'uniform float u_time;',
+    'uniform vec2 u_resolution;',
+    'uniform float u_tension, u_scroll;',
+    'uniform vec2 u_mouse;',
+    'uniform vec3 u_themeColor;',
+    'uniform float u_isMainPage;',
+    'varying vec2 vUv;',
+    '',
+    'mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}',
+    'float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}',
+    'float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);vec2 u=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);}',
+    'float fbm(vec2 p){float v=0.0,a=0.5;vec2 sh=vec2(100.0);for(int i=0;i<5;++i){v+=a*noise(p);p=rot(0.5)*p*2.0+sh;a*=0.5;}return v;}',
+    '',
+    'void main(){',
+    '  vec2 st=gl_FragCoord.xy/u_resolution.xy;',
+    '  vec2 uv=st*2.0-1.0;',
+    '  uv.x*=u_resolution.x/u_resolution.y;',
+    '  float dist=length(uv);',
+    '',
+    '  if(u_isMainPage>0.5){float swirl=5.2*exp(-dist*1.2);uv*=rot(u_time*0.23+swirl);}',
+    '',
+    '  float bend=smoothstep(0.4,2.35,dist)*(0.28+u_tension*0.81);',
+    '  vec2 refractedUv=uv+normalize(uv)*bend*fbm(uv*1.5+u_time*0.1);',
+    '',
+    '  float n=fbm(refractedUv*0.8+u_time*0.05);',
+    '  vec3 starCol=vec3(0.0);',
+    '',
+    '  vec2 sgA=floor(refractedUv*40.0);float ssA=hash(sgA);float sbA=pow(ssA,40.0);',
+    '  vec2 scA=fract(refractedUv*40.0)-0.5;vec2 soA=vec2(hash(sgA+0.1),hash(sgA+0.2))-0.5;',
+    '  float sdA=length(scA-soA*0.6);float sA=smoothstep(0.06,0.01,sdA)*sbA;',
+    '  float tA=hash(sgA+7.0);vec3 stA=mix(vec3(0.7,0.8,1.0),vec3(1.0,0.85,0.6),tA);',
+    '  sA*=0.7+0.3*sin(u_time*(2.0+ssA*4.0)+ssA*6.28);starCol+=stA*sA*3.0;',
+    '',
+    '  vec2 sgB=floor(refractedUv*90.0);float ssB=hash(sgB);float sbB=pow(ssB,35.0);',
+    '  vec2 scB=fract(refractedUv*90.0)-0.5;vec2 soB=vec2(hash(sgB+3.1),hash(sgB+3.2))-0.5;',
+    '  float sdB=length(scB-soB*0.5);float sB=smoothstep(0.04,0.005,sdB)*sbB;',
+    '  float tB=hash(sgB+5.0);vec3 stB=mix(vec3(0.8,0.85,1.0),vec3(1.0,0.9,0.75),tB);',
+    '  starCol+=stB*sB*2.0;',
+    '',
+    '  vec2 sgC=floor(refractedUv*200.0);float ssC=hash(sgC);',
+    '  float sbC=pow(ssC,30.0)*0.2;starCol+=vec3(0.9,0.9,1.0)*sbC;',
+    '',
+    '  float starDensity=fbm(refractedUv*2.0);starCol*=0.5+starDensity*0.9;',
+    '',
+    '  vec2 q=vec2(fbm(refractedUv+0.1*u_time),fbm(refractedUv+vec2(1.0)));',
+    '  vec2 r=vec2(fbm(refractedUv+1.0*q+vec2(1.7,9.2)+0.32*u_time),fbm(refractedUv+1.0*q+vec2(8.3,2.8)+0.126*u_time));',
+    '  float fluidNoise=fbm(refractedUv+r*(4.4+u_tension*2.5)-vec2(0.0,u_scroll*2.5));',
+    '',
+    '  float safeZone=1.0-smoothstep(0.1,1.3,dist);',
+    '  if(u_isMainPage>0.5)safeZone*=0.7;',
+    '  float density=(1.0-safeZone)*(0.6+u_tension*0.4);',
+    '',
+    '  vec3 baseColor=u_themeColor*0.4;',
+    '  float vortexFalloff=smoothstep(3.2,0.31,dist);',
+    '  vec3 col=mix(baseColor*0.05,u_themeColor*1.2,fluidNoise*vortexFalloff);',
+    '',
+    '  col+=u_themeColor*n*0.4*vortexFalloff;',
+    '  float dust1=fbm(refractedUv*1.2+vec2(u_time*0.02,0.0));',
+    '  float dust2=fbm(refractedUv*1.8-vec2(0.0,u_time*0.015));',
+    '  col+=vec3(0.15,0.02,0.04)*dust1*0.52;',
+    '  col+=vec3(0.02,0.03,0.08)*dust2*0.33;',
+    '',
+    '  float starVisibility=1.3+1.0*(1.0-vortexFalloff);col+=starCol*starVisibility;',
+    '',
+    '  float angle=atan(uv.y,uv.x);',
+    '  float rays=noise(vec2(angle*6.0+u_time*0.79,dist*0.4))*0.5+0.5;',
+    '  float clumps=noise(vec2(angle*12.0+u_time*0.04,dist*3.0))*0.6+0.4;',
+    '  col+=u_themeColor*rays*density*0.73*vortexFalloff*clumps;',
+    '',
+    '  float ridged1=1.0-abs(noise(vec2(angle*17.0+u_time*0.15,dist*1.5-u_time*0.08))*2.0-1.0);',
+    '  ridged1=pow(ridged1,3.0);',
+    '  float filamentMask=smoothstep(0.3,0.6,dist)*smoothstep(1.4,0.7,dist);',
+    '  float filamentClump=noise(vec2(angle*7.0-u_time*0.03,dist*2.0));',
+    '  filamentClump=smoothstep(0.25,0.6,filamentClump);',
+    '  col+=vec3(1.0,0.3,0.1)*ridged1*filamentMask*0.34*filamentClump;',
+    '',
+    '  float arm2=noise(vec2(angle*10.5-u_time*0.32,dist*0.8+u_time*0.05));',
+    '  arm2=smoothstep(0.4,0.7,arm2);col+=u_themeColor*arm2*density*0.39*vortexFalloff;',
+    '',
+    '  float innerHeat=smoothstep(0.8,0.67,dist)*smoothstep(0.47,0.67,dist);',
+    '  float heatNoise=noise(vec2(angle*5.0+u_time*0.3,dist*2.0));',
+    '  vec3 hotColor=mix(vec3(0.6,0.1,0.0),vec3(1.0,0.6,0.2),heatNoise);',
+    '  col+=hotColor*innerHeat*density*0.65;',
+    '',
+    '  float turbulence=noise(uv*rot(u_time*0.08)*8.0+r*2.0);',
+    '  turbulence*=noise(uv*rot(-u_time*0.06)*14.0);',
+    '  float turbMask=smoothstep(0.2,0.7,dist)*smoothstep(1.5,0.7,dist);',
+    '  col+=u_themeColor*turbulence*turbMask*0.51;',
+    '',
+    '  if(u_isMainPage>0.5){',
+    '    float coreSwirl=8.0*exp(-dist*5.7);',
+    '    vec2 coreUv=uv*rot(-u_time*2.0-coreSwirl);',
+    '    float layer1=fbm(coreUv*2.0+u_time*0.1);',
+    '    float layer2=fbm(coreUv*4.0-u_time*0.15);',
+    '    float layer3=fbm(coreUv*8.0+u_time*0.2);',
+    '    float mask1=smoothstep(0.37+layer1*0.15,0.37,dist);',
+    '    float mask2=smoothstep(0.52+layer2*0.1,0.34,dist);',
+    '    float mask3=smoothstep(0.42+layer3*0.05,0.24,dist);',
+    '    col=mix(col,col*0.03,mask1);col=mix(col,col*0.3,mask2);col=mix(col,vec3(0.0),mask3);',
+    '',
+    '    float innerGlow=exp(-dist*dist*38.0);',
+    '    float pulse=0.6+0.4*sin(u_time*1.6);',
+    '    col+=vec3(0.53,0.2,0.24)*innerGlow*pulse*1.01;',
+    '',
+    '    vec2 lightUv=uv*rot(u_time*4.4+coreSwirl);',
+    '    float lightLayer=fbm(lightUv*4.1-u_time*0.12);',
+    '    float lightMask=smoothstep(0.7,0.16,dist)*smoothstep(0.05,0.16,dist);',
+    '    col+=u_themeColor*lightLayer*lightMask*0.35;',
+    '',
+    '    float rim=smoothstep(0.42,0.32,dist)*smoothstep(0.25,0.32,dist);',
+    '    col+=u_themeColor*rim*0.83*(0.8+layer1*0.4);',
+    '',
+    '    float photonRing=smoothstep(0.33,0.36,dist)*smoothstep(0.39,0.35,dist);',
+    '    float ringNoise=noise(vec2(angle*10.0+u_time*0.25,dist*8.0));',
+    '    photonRing*=0.7+ringNoise*0.3;',
+    '    vec3 ringColor=mix(vec3(1.0,0.5,0.1),vec3(1.0,0.9,0.7),photonRing);',
+    '    col+=ringColor*photonRing*1.37;',
+    '',
+    '    float leak=pow(fbm(uv*rot(u_time*0.1)*3.0),3.0)*density;',
+    '    if(dist<0.6){col-=vec3(leak*0.65);}',
+    '',
+    '    float tendrilAngle=atan(uv.y,uv.x);float angleNorm=tendrilAngle/6.2832+0.5;',
+    '    float tendrilNoise=fbm(vec2(angleNorm*8.0+u_time*0.245,dist*2.0-u_time*0.15));',
+    '    float tendrilShape=pow(tendrilNoise,3.0);',
+    '    float tendrilReach=noise(vec2(angleNorm*6.0-u_time*0.05,0.5));',
+    '    float tendrilOuter=1.25+tendrilReach*0.5;',
+    '    float tendrilMask=smoothstep(0.45,0.55,dist)*smoothstep(tendrilOuter,0.55,dist);',
+    '    col+=u_themeColor*tendrilShape*tendrilMask*0.9;',
+    '  }',
+    '',
+    '  float weave=noise(refractedUv*12.0+r*6.0)*density;col-=vec3(weave*0.49);',
+    '  float chromaticOffset=dist*dist*(0.105+u_tension*0.06);',
+    '  float rColor=fbm(refractedUv+vec2(chromaticOffset,0.0)+r);',
+    '  float gColor=fbm(refractedUv+r);',
+    '  float bColor=fbm(refractedUv-vec2(chromaticOffset,0.0)+r);',
+    '  col.r+=rColor*0.2*density;col.g*=0.97+gColor*0.03;col.b+=bColor*0.2*density;',
+    '',
+    '  col*=smoothstep(4.6,0.1,dist*(0.6+u_tension*0.4));',
+    '  col+=hash(uv*120.0+u_time)*0.07;col*=1.2;',
+    '  gl_FragColor=vec4(col,1.0);',
+    '}'
+  ].join('\n');
+
+  var voidGeo = new THREE.PlaneGeometry(2, 2);
+  var voidMat = new THREE.ShaderMaterial({ uniforms: voidUniforms, vertexShader: voidVert, fragmentShader: voidFrag, depthWrite: false, depthTest: false });
+  voidScene.add(new THREE.Mesh(voidGeo, voidMat));
+
+  // --- TOP DISC SHADER (raytraced accretion, top-only) ---
+  var discScene = new THREE.Scene();
+  discUniforms = {
+    u_time: { value: 0 }, u_resolution: { value: new THREE.Vector2(W, H) },
+    u_cam_distance: { value: P('cam_distance') },
+    u_cam_inclination: { value: P('cam_inclination') },
+    u_cam_fov: { value: P('cam_fov') },
+    u_disk_inner: { value: P('disk_inner') },
+    u_disk_outer: { value: P('disk_outer') },
+    u_disk_brightness: { value: P('disk_brightness') },
+    u_disk_temp_inner: { value: P('disk_temp_inner') },
+    u_disk_temp_falloff: { value: P('disk_temp_falloff') },
+    u_disk_noise_scale: { value: P('disk_noise_scale') },
+    u_disk_noise_str: { value: P('disk_noise_str') },
+    u_disk_rot_speed: { value: P('disk_rot_speed') },
+    u_doppler_str: { value: P('doppler_str') },
+    u_doppler_boost: { value: P('doppler_boost') },
+    u_stars_brightness: { value: P('disc_stars_brightness') },
+    u_stars_density: { value: P('disc_stars_density') },
+    u_bloom_str: { value: P('disc_bloom_str') },
+    u_vignette_str: { value: P('disc_vignette_str') },
+    u_overall_bright: { value: P('disc_overall_bright') },
+    u_grain_intensity: { value: P('disc_grain') },
+    u_max_steps: { value: P('max_steps') },
+    u_step_size: { value: P('step_size') },
+  };
+
+  var discVert = voidVert;
+  // Top disc fragment — identical to shader-tuner-top-disc.html
+  var discFrag = `
+    precision highp float;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_cam_distance, u_cam_inclination, u_cam_fov;
+    uniform float u_disk_inner, u_disk_outer, u_disk_brightness;
+    uniform float u_disk_temp_inner, u_disk_temp_falloff;
+    uniform float u_disk_noise_scale, u_disk_noise_str, u_disk_rot_speed;
+    uniform float u_doppler_str, u_doppler_boost;
+    uniform float u_stars_brightness, u_stars_density;
+    uniform float u_bloom_str, u_vignette_str, u_overall_bright, u_grain_intensity;
+    uniform float u_max_steps, u_step_size;
+    varying vec2 vUv;
+
+    float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+    float hash3(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,45.164)))*43758.5453);}
+    float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);vec2 u=f*f*(3.0-2.0*f);
+      return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);}
+    float fbm(vec2 p){float v=0.0,a=0.5;mat2 r=mat2(0.8,-0.6,0.6,0.8);
+      for(int i=0;i<4;i++){v+=a*noise(p);p=r*p*2.0+vec2(100.0);a*=0.5;}return v;}
+
+    vec3 discColor(float t){
+      vec3 darkPurple=vec3(0.15,0.02,0.12);vec3 deepRed=vec3(0.45,0.02,0.04);
+      vec3 brightRed=vec3(0.85,0.08,0.03);vec3 hotOrange=vec3(1.0,0.45,0.05);
+      vec3 gold=vec3(1.0,0.78,0.3);
+      if(t<0.2)return mix(darkPurple,deepRed,t*5.0);
+      if(t<0.45)return mix(deepRed,brightRed,(t-0.2)*4.0);
+      if(t<0.7)return mix(brightRed,hotOrange,(t-0.45)*4.0);
+      return mix(hotOrange,gold,(t-0.7)*3.333);
+    }
+
+    vec3 starfield(vec3 dir){
+      vec3 col=vec3(0.0);
+      vec3 grid=floor(dir*u_stars_density);float s=hash3(grid);
+      float bright=pow(s,45.0);float twinkle=0.7+0.3*sin(u_time*(2.0+s*4.0)+s*6.28);
+      vec3 tint=mix(vec3(0.7,0.8,1.0),vec3(1.0,0.85,0.6),hash3(grid+7.0));
+      col+=tint*bright*twinkle*u_stars_brightness;
+      vec3 grid2=floor(dir*u_stars_density*2.5);float s2=hash3(grid2);
+      col+=vec3(0.9,0.9,1.0)*pow(s2,40.0)*u_stars_brightness*0.3;
+      return col;
+    }
+
+    vec3 ACESFilm(vec3 x){return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0);}
+
+    void main(){
+      vec2 uv=(gl_FragCoord.xy/u_resolution.xy)*2.0-1.0;
+      uv.x*=u_resolution.x/u_resolution.y;
+
+      float incl=radians(u_cam_inclination);float fov=radians(u_cam_fov);
+      float camR=u_cam_distance;float halfTan=tan(fov*0.5);
+      vec3 camPos=vec3(0.0,camR*cos(incl),-camR*sin(incl));
+      vec3 camFwd=normalize(-camPos);
+      vec3 wUp=vec3(0.0,1.0,0.0);
+      if(abs(dot(camFwd,wUp))>0.999)wUp=vec3(0.0,0.0,1.0);
+      vec3 camRight=normalize(cross(camFwd,wUp));vec3 camUp=cross(camRight,camFwd);
+      vec3 ray=normalize(camFwd+uv.x*halfTan*camRight+uv.y*halfTan*camUp);
+
+      vec3 nHat=normalize(camPos);vec3 cp=cross(nHat,ray);float cpLen=length(cp);
+      vec3 pNormal;vec3 tHat;float rayN,rayT;
+      if(cpLen<1e-5){pNormal=normalize(cross(nHat,camRight));tHat=cross(pNormal,nHat);rayN=dot(ray,nHat);rayT=0.0;}
+      else{pNormal=cp/cpLen;tHat=cross(pNormal,nHat);rayN=dot(ray,nHat);rayT=dot(ray,tHat);}
+
+      float u0=1.0/camR;float du=0.0;
+      if(abs(rayT)>1e-7){du=-(rayN/rayT)*u0;}
+
+      float uCur=u0;float phi=0.0;float dphi=u_step_size;int nMax=int(u_max_steps);
+      vec3 diskCol=vec3(0.0);float diskAlpha=0.0;bool absorbed=false;bool escaped=false;
+      vec3 pos=camPos;vec3 oldPos=camPos;
+
+      for(int i=0;i<800;i++){
+        if(i>=nMax)break;
+        oldPos=pos;
+        float ddu1=-uCur+1.5*uCur*uCur;du+=0.5*ddu1*dphi;uCur+=du*dphi;phi+=dphi;
+        float ddu2=-uCur+1.5*uCur*uCur;du+=0.5*ddu2*dphi;
+        if(uCur>1.0){absorbed=true;break;}
+        if(uCur>0.0&&du<0.0&&uCur<u0*0.8){escaped=true;}
+        if(uCur<=0.0){escaped=true;uCur=max(uCur,1e-6);break;}
+        float rCur=1.0/uCur;pos=(cos(phi)*nHat+sin(phi)*tHat)*rCur;
+
+        if(i>0&&oldPos.y>0.0&&pos.y<0.0){
+          float tCross=oldPos.y/(oldPos.y-pos.y);vec3 cPos=mix(oldPos,pos,tCross);float cR=length(cPos);
+          if(cR>u_disk_inner&&cR<u_disk_outer){
+            float diskAngle=atan(cPos.z,cPos.x);
+            float rNorm=(cR-u_disk_inner)/(u_disk_outer-u_disk_inner);rNorm=clamp(rNorm,0.0,1.0);
+            float temp=u_disk_temp_inner*pow(1.0-rNorm,u_disk_temp_falloff);temp=clamp(temp,0.0,1.0);
+            float nAng=diskAngle+u_time*u_disk_rot_speed/max(cR*0.5,0.5);
+            float diskN=fbm(vec2(nAng*u_disk_noise_scale,cR*2.5));
+            float structure=1.0-u_disk_noise_str+u_disk_noise_str*diskN;
+            float innerFade=smoothstep(u_disk_inner,u_disk_inner+0.4,cR);
+            float outerFade=smoothstep(u_disk_outer,u_disk_outer-1.5,cR);
+            float edgeFade=innerFade*outerFade;
+            float radialBright=pow(u_disk_inner/cR,1.5);
+            float vOrb=0.0;
+            if(cR>1.05){vOrb=1.0/sqrt(2.0*(cR-1.0));vOrb=min(vOrb,0.85);}
+            vec3 orbDir=normalize(vec3(-cPos.z,0.0,cPos.x));
+            vec3 viewDir=normalize(cPos-camPos);
+            float dShift=1.0+vOrb*dot(orbDir,viewDir)*u_doppler_str;dShift=clamp(dShift,0.2,3.5);
+            float dFactor=pow(dShift,u_doppler_boost);
+            vec3 dCol=discColor(temp)*structure*edgeFade*radialBright;
+            dCol*=u_disk_brightness*dFactor;
+            float alpha=edgeFade*structure*0.85;
+            diskCol+=dCol*(1.0-diskAlpha);
+            diskAlpha=min(diskAlpha+alpha*(1.0-diskAlpha),1.0);
+          }
+        }
+        if(escaped)break;
+      }
+
+      vec3 col=vec3(0.0);
+      if(absorbed){col=diskCol;}
+      else{vec3 skyDir=normalize(pos);vec3 stars=starfield(skyDir);col=stars*(1.0-diskAlpha)+diskCol;}
+
+      float lum=dot(col,vec3(0.299,0.587,0.114));col*=1.0+u_bloom_str*max(0.0,lum-0.3);
+      float screenDist=length(uv);col*=max(1.0-u_vignette_str*screenDist*screenDist,0.0);
+      col+=(hash(gl_FragCoord.xy+u_time)-0.5)*u_grain_intensity;
+      col*=u_overall_bright;
+      col=ACESFilm(col);col=pow(max(col,0.0),vec3(1.0/2.2));
+
+      // Output luminance in alpha for compositing
+      float outLum = dot(col, vec3(0.299, 0.587, 0.114));
+      gl_FragColor=vec4(col, outLum);
+    }
+  `;
+
+  var discGeo = new THREE.PlaneGeometry(2, 2);
+  var discMat = new THREE.ShaderMaterial({ uniforms: discUniforms, vertexShader: discVert, fragmentShader: discFrag, depthWrite: false, depthTest: false });
+  discScene.add(new THREE.Mesh(discGeo, discMat));
+
+  // --- COMPOSITE SHADER ---
+  var compScene = new THREE.Scene();
+  compUniforms = {
+    u_texVoid: { value: rtVoid.texture },
+    u_texDisc: { value: rtDisc.texture },
+    u_resolution: { value: new THREE.Vector2(W, H) },
+    u_opacity: { value: P('comp_opacity') },
+    u_blendMode: { value: P('comp_blend') },
+    u_offset: { value: new THREE.Vector2(P('comp_x_offset'), P('comp_y_offset')) },
+    u_scale: { value: P('comp_scale') },
+    u_discBright: { value: P('comp_disc_bright') },
+    u_voidBright: { value: P('comp_void_bright') },
+    u_soloMode: { value: 0.0 }, // 0=both, 1=void only, 2=disc only
+    u_maskRadius: { value: P('comp_mask_radius') },
+    u_maskSoft: { value: P('comp_mask_soft') },
+  };
+
+  var compFrag = `
+    precision highp float;
+    uniform sampler2D u_texVoid;
+    uniform sampler2D u_texDisc;
+    uniform vec2 u_resolution;
+    uniform float u_opacity;
+    uniform float u_blendMode;
+    uniform vec2 u_offset;
+    uniform float u_scale;
+    uniform float u_discBright;
+    uniform float u_voidBright;
+    uniform float u_soloMode;
+    uniform float u_maskRadius;
+    uniform float u_maskSoft;
+    varying vec2 vUv;
+
+    vec3 blendScreen(vec3 a, vec3 b) {
+      return 1.0 - (1.0 - a) * (1.0 - b);
+    }
+
+    void main() {
+      // Use vUv (0-1 from geometry) — immune to pixelRatio mismatch
+      vec2 st = vUv;
+
+      // Sample void at original coords
+      vec4 voidSample = texture2D(u_texVoid, st);
+      vec3 voidCol = voidSample.rgb * u_voidBright;
+
+      // Sample disc with offset and scale
+      vec2 discSt = (st - 0.5) / u_scale + 0.5 - u_offset;
+      vec4 discSample = texture2D(u_texDisc, discSt);
+      vec3 discCol = discSample.rgb * u_discBright;
+      float discLum = discSample.a; // luminance stored in alpha
+
+      // Optional circular mask to isolate disc contribution
+      vec2 uv = (st - 0.5) * 2.0;
+      uv.x *= u_resolution.x / u_resolution.y;
+      float maskDist = length(uv);
+      float mask = 1.0;
+      if (u_maskRadius > 0.01) {
+        mask = 1.0 - smoothstep(u_maskRadius - u_maskSoft, u_maskRadius + u_maskSoft, maskDist);
+      }
+
+      // Out-of-bounds check for disc sampling
+      float inBounds = step(0.0, discSt.x) * step(discSt.x, 1.0) * step(0.0, discSt.y) * step(discSt.y, 1.0);
+      discCol *= inBounds;
+      discLum *= inBounds;
+
+      vec3 col;
+
+      // Solo modes
+      if (u_soloMode > 1.5) {
+        col = discCol * u_opacity;
+      } else if (u_soloMode > 0.5) {
+        col = voidCol;
+      } else {
+        // Composite
+        vec3 discContrib = discCol * u_opacity * mask;
+
+        if (u_blendMode < 0.5) {
+          // Additive
+          col = voidCol + discContrib;
+        } else if (u_blendMode < 1.5) {
+          // Screen
+          col = blendScreen(voidCol, discContrib);
+        } else {
+          // Over (alpha composite using disc luminance)
+          float a = clamp(discLum * u_opacity * mask, 0.0, 1.0);
+          col = mix(voidCol, discCol * u_discBright, a);
+        }
+      }
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `;
+
+  var compGeo = new THREE.PlaneGeometry(2, 2);
+  var compMat = new THREE.ShaderMaterial({ uniforms: compUniforms, vertexShader: voidVert, fragmentShader: compFrag, depthWrite: false, depthTest: false });
+  compScene.add(new THREE.Mesh(compGeo, compMat));
+
+  // --- Mouse ---
+  document.addEventListener('mousemove', function(e) {
+    voidUniforms.u_mouse.value.set(e.clientX / window.innerWidth, 1.0 - e.clientY / window.innerHeight);
+  }, { passive: true });
+
+  // --- Resize ---
+  window.addEventListener('resize', function() {
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h);
+    rtVoid.setSize(w, h);
+    rtDisc.setSize(w, h);
+    voidUniforms.u_resolution.value.set(w, h);
+    discUniforms.u_resolution.value.set(w, h);
+    compUniforms.u_resolution.value.set(w, h);
+  });
+
+  // --- Animate ---
+  function animate() {
+    requestAnimationFrame(animate);
+    var t = clock.getElapsedTime();
+
+    voidUniforms.u_time.value = t * 0.5;
+    discUniforms.u_time.value = t * 0.3;
+
+    // Pass 1: Render void to texture
+    renderer.setRenderTarget(rtVoid);
+    renderer.render(voidScene, camera);
+
+    // Pass 2: Render disc to texture
+    renderer.setRenderTarget(rtDisc);
+    renderer.render(discScene, camera);
+
+    // Pass 3: Composite to screen
+    renderer.setRenderTarget(null);
+    renderer.render(compScene, camera);
+  }
+  animate();
+}
+
+function syncUniforms() {
+  if (!discUniforms || !compUniforms) return;
+
+  // Disc uniforms
+  discUniforms.u_cam_distance.value = P('cam_distance');
+  discUniforms.u_cam_inclination.value = P('cam_inclination');
+  discUniforms.u_cam_fov.value = P('cam_fov');
+  discUniforms.u_disk_inner.value = P('disk_inner');
+  discUniforms.u_disk_outer.value = P('disk_outer');
+  discUniforms.u_disk_brightness.value = P('disk_brightness');
+  discUniforms.u_disk_temp_inner.value = P('disk_temp_inner');
+  discUniforms.u_disk_temp_falloff.value = P('disk_temp_falloff');
+  discUniforms.u_disk_noise_scale.value = P('disk_noise_scale');
+  discUniforms.u_disk_noise_str.value = P('disk_noise_str');
+  discUniforms.u_disk_rot_speed.value = P('disk_rot_speed');
+  discUniforms.u_doppler_str.value = P('doppler_str');
+  discUniforms.u_doppler_boost.value = P('doppler_boost');
+  discUniforms.u_stars_brightness.value = P('disc_stars_brightness');
+  discUniforms.u_stars_density.value = P('disc_stars_density');
+  discUniforms.u_bloom_str.value = P('disc_bloom_str');
+  discUniforms.u_vignette_str.value = P('disc_vignette_str');
+  discUniforms.u_overall_bright.value = P('disc_overall_bright');
+  discUniforms.u_grain_intensity.value = P('disc_grain');
+  discUniforms.u_max_steps.value = P('max_steps');
+  discUniforms.u_step_size.value = P('step_size');
+
+  // Composite uniforms
+  compUniforms.u_opacity.value = P('comp_opacity');
+  compUniforms.u_blendMode.value = P('comp_blend');
+  compUniforms.u_offset.value.set(P('comp_x_offset'), P('comp_y_offset'));
+  compUniforms.u_scale.value = P('comp_scale');
+  compUniforms.u_discBright.value = P('comp_disc_bright');
+  compUniforms.u_voidBright.value = P('comp_void_bright');
+  compUniforms.u_maskRadius.value = P('comp_mask_radius');
+  compUniforms.u_maskSoft.value = P('comp_mask_soft');
+
+  // Solo mode
+  if (soloMode === 'void') compUniforms.u_soloMode.value = 1.0;
+  else if (soloMode === 'disc') compUniforms.u_soloMode.value = 2.0;
+  else compUniforms.u_soloMode.value = 0.0;
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+buildUI();
+initThree();
+</script>
+</body>
+</html>
