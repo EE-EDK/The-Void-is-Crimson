@@ -77,6 +77,10 @@
             margin-bottom: 0.5rem;
             position: relative;
             z-index: 10;
+            /* Override shared-styles fadeIn — children handle their own phase-in */
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
         }
 
         /* --- Phase 1: "The Void" fades in: transparent black → red → white (2.5s) --- */
@@ -192,6 +196,8 @@
             font-family: 'Cormorant Garamond', serif;
             font-size: clamp(0.9rem, 2.5vw, 1.2rem);
             color: rgba(255, 255, 255, 0.6);
+            animation: none !important;
+            opacity: 1 !important;
             letter-spacing: 4px;
             margin-bottom: 3rem;
             text-transform: lowercase;
