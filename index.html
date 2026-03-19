@@ -76,62 +76,115 @@
             letter-spacing: 0.25em;
             margin-bottom: 0.5rem;
             position: relative;
-            z-index: 10; /* High z-index */
+            z-index: 10;
         }
 
-        .void-word {
+        /* --- Phase 1: "The Void" fades in: transparent black → red → white (2.5s) --- */
+        .title-the-void {
+            display: inline;
+            opacity: 0;
+            color: #000000;
+            animation: theVoidPhase 2.5s ease-out forwards;
+        }
+
+        @keyframes theVoidPhase {
+            0%   { opacity: 0; color: #000000; }
+            30%  { opacity: 1; color: #1a0000; }
+            60%  { color: #8b0000; }
+            85%  { color: #cc3333; }
+            100% { color: #ffffff; }
+        }
+
+        /* --- Phase 2: "at Crimson Sunset" cascading color wave (2.5s, delayed 2.5s) --- */
+        .title-subtitle {
+            display: inline;
+        }
+        .title-subtitle .cascade-letter {
             display: inline-block;
+            opacity: 0;
+            animation: cascadeWave 2.5s ease-out forwards;
+            min-width: 0.3em; /* preserve space width */
+        }
+
+        @keyframes cascadeWave {
+            0%   { opacity: 0; color: #1a0000; }
+            10%  { opacity: 1; color: #2d0000; }
+            15%  { color: #4a0000; }
+            20%  { color: #6b0000; }
+            25%  { color: #8b0000; }
+            30%  { color: #a52a00; }
+            35%  { color: #b84400; }
+            40%  { color: #cc5500; }
+            45%  { color: #d46a00; }
+            50%  { color: #dd7700; }
+            55%  { color: #e68a00; }
+            60%  { color: #ee9911; }
+            65%  { color: #dd7700; }
+            70%  { color: #cc5500; }
+            75%  { color: #bb3300; }
+            80%  { color: #cc5544; }
+            85%  { color: #dd8877; }
+            90%  { color: #eebbaa; }
+            95%  { color: #f5ddd5; }
+            100% { color: #ffffff; }
+        }
+
+        /* --- Phase 3: "Void" tendrils start after 5s --- */
+        .void-word {
+            display: inline;
             position: relative;
-            animation: tendrils 10s infinite ease-in-out;
-            color: #ffffff;
             font-weight: 400;
             z-index: 11;
+        }
+        .void-word.tendrils-active {
+            animation: tendrils 8s infinite ease-in-out;
         }
 
         @keyframes tendrils {
             0%, 100% {
                 text-shadow:
-                    0 0 4px rgba(139, 0, 0, 0.8),
-                    0 0 8px rgba(139, 0, 0, 0.4);
+                    0 0 8px rgba(139, 0, 0, 1),
+                    0 0 20px rgba(139, 0, 0, 0.6),
+                    0 0 40px rgba(100, 0, 0, 0.3);
             }
             20% {
                 text-shadow:
-                    0 0 4px rgba(139, 0, 0, 0.8),
-                    10px 6px 4px rgba(139, 0, 0, 1),
-                    -8px 12px 5px rgba(139, 0, 0, 0.9),
-                    6px -10px 3px rgba(139, 0, 0, 0.8),
-                    -14px -4px 6px rgba(139, 0, 0, 0.7),
-                    12px 14px 10px rgba(139, 0, 0, 0.6);
+                    0 0 8px rgba(139, 0, 0, 1),
+                    12px 8px 6px rgba(139, 0, 0, 1),
+                    -10px 14px 8px rgba(139, 0, 0, 0.9),
+                    8px -12px 5px rgba(139, 0, 0, 0.8),
+                    -16px -6px 10px rgba(139, 0, 0, 0.7),
+                    14px 16px 14px rgba(100, 0, 0, 0.5);
             }
             45% {
                 text-shadow:
-                    0 0 4px rgba(139, 0, 0, 0.8),
-                    22px 10px 5px rgba(139, 0, 0, 1),
-                    -18px 25px 6px rgba(139, 0, 0, 0.95),
-                    14px -22px 4px rgba(139, 0, 0, 0.9),
-                    -28px -8px 7px rgba(139, 0, 0, 0.85),
-                    25px 28px 8px rgba(139, 0, 0, 0.8),
-                    -10px -30px 5px rgba(139, 0, 0, 0.75),
-                    30px -12px 6px rgba(139, 0, 0, 0.7);
+                    0 0 8px rgba(139, 0, 0, 1),
+                    25px 12px 8px rgba(139, 0, 0, 1),
+                    -20px 28px 10px rgba(139, 0, 0, 0.95),
+                    16px -25px 6px rgba(139, 0, 0, 0.9),
+                    -32px -10px 12px rgba(139, 0, 0, 0.8),
+                    28px 30px 14px rgba(100, 0, 0, 0.7),
+                    -12px -34px 8px rgba(100, 0, 0, 0.6),
+                    34px -14px 10px rgba(80, 0, 0, 0.5);
             }
             70% {
                 text-shadow:
-                    0 0 4px rgba(139, 0, 0, 0.8),
-                    40px 15px 6px rgba(139, 0, 0, 1),
-                    -32px 40px 7px rgba(139, 0, 0, 0.95),
-                    20px -38px 5px rgba(139, 0, 0, 0.9),
-                    -45px -12px 8px rgba(139, 0, 0, 0.85),
-                    38px 42px 9px rgba(139, 0, 0, 0.8),
-                    -15px -48px 6px rgba(139, 0, 0, 0.75),
-                    50px -18px 7px rgba(139, 0, 0, 0.7),
-                    -42px 20px 8px rgba(139, 0, 0, 0.65);
+                    0 0 10px rgba(139, 0, 0, 1),
+                    45px 18px 10px rgba(139, 0, 0, 1),
+                    -36px 44px 12px rgba(139, 0, 0, 0.95),
+                    22px -42px 8px rgba(139, 0, 0, 0.9),
+                    -50px -14px 14px rgba(139, 0, 0, 0.8),
+                    42px 46px 16px rgba(100, 0, 0, 0.7),
+                    -18px -52px 10px rgba(100, 0, 0, 0.6),
+                    55px -20px 12px rgba(80, 0, 0, 0.5),
+                    -46px 22px 14px rgba(80, 0, 0, 0.4);
             }
             85% {
                 text-shadow:
-                    0 0 4px rgba(139, 0, 0, 0.8),
-                    18px 8px 5px rgba(139, 0, 0, 0.9),
-                    -12px 18px 5px rgba(139, 0, 0, 0.7),
-                    8px -14px 4px rgba(139, 0, 0, 0.6);
+                    0 0 8px rgba(139, 0, 0, 1),
+                    20px 10px 8px rgba(139, 0, 0, 0.9),
+                    -14px 20px 8px rgba(139, 0, 0, 0.7),
+                    10px -16px 6px rgba(100, 0, 0, 0.5);
             }
         }
 
@@ -198,7 +251,7 @@
 
         .index-warning {
             font-size: 0.75rem;
-            color: rgba(255, 100, 100, 0.4);
+            color: rgba(255, 255, 255, 0.7);
             letter-spacing: 2px;
             position: fixed;
             bottom: 2rem;
@@ -206,12 +259,16 @@
             left: 0;
             text-align: center;
             z-index: 2;
+            text-shadow:
+                0 0 8px rgba(255, 255, 255, 0.5),
+                0 0 16px rgba(255, 255, 255, 0.25),
+                0 0 30px rgba(255, 255, 255, 0.1);
             animation: warning-pulse 4s ease-in-out infinite;
         }
 
         @keyframes warning-pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.7; }
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.85; }
         }
 
         /* Accessibility improvements */
@@ -318,7 +375,7 @@
     <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
     <main id="main-content" class="container" role="main">
-        <h1 class="title">The <span class="void-word">Void</span> at Crimson Sunset</h1>
+        <h1 class="title"><span class="title-the-void">The <span class="void-word">Void</span></span> <span class="title-subtitle" id="title-subtitle">at Crimson Sunset</span></h1>
         <p class="index-tagline horror-whisper" data-whisper="you were always coming here">An interactive cosmic horror experience</p>
         <nav class="acts-navigation" role="navigation" aria-label="Story chapters">
             <a href="./The-Fifth-Harmonic-ACT1.html" class="act-link" data-subtitle="The Pattern calls">ACT I: The Fifth Harmonic</a>
@@ -328,6 +385,30 @@
         <p class="index-warning">Best experienced with headphones in the dark</p>
     </main>
 
+    <script>
+        // Split "at Crimson Sunset" into individual letters for cascade animation
+        document.addEventListener('DOMContentLoaded', function() {
+            var subtitle = document.getElementById('title-subtitle');
+            var text = subtitle.textContent;
+            subtitle.textContent = '';
+            var totalLetters = text.length;
+            for (var i = 0; i < totalLetters; i++) {
+                var span = document.createElement('span');
+                span.className = 'cascade-letter';
+                span.textContent = text[i] === ' ' ? '\u00A0' : text[i];
+                // Stagger: 2.5s base delay + spread each letter across 1.5s of the 2.5s window
+                var stagger = 2.5 + (i / totalLetters) * 1.5;
+                span.style.animationDelay = stagger.toFixed(2) + 's';
+                subtitle.appendChild(span);
+            }
+
+            // Start tendrils on "Void" after both phases complete (5s)
+            setTimeout(function() {
+                var voidWord = document.querySelector('.void-word');
+                if (voidWord) voidWord.classList.add('tendrils-active');
+            }, 5000);
+        });
+    </script>
     <script src="./assets/js/visuals-engine.js" defer></script>
 </body>
 </html>
