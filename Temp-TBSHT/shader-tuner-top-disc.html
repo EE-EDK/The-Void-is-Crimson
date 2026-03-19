@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shader Tuner — Top Disc Only</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; font-family: monospace; color: #ccc; }
+canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+
+#panel {
+  position: fixed; top: 0; right: 0; width: 340px; height: 100vh;
+  background: rgba(0,0,0,0.88); border-left: 1px solid #333;
+  overflow-y: auto; z-index: 100; padding: 8px 10px;
+  font-size: 11px;
+}
+#panel::-webkit-scrollbar { width: 6px; }
+#panel::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+#panel h1 { color: #c44; font-size: 13px; margin-bottom: 6px; letter-spacing: 1px; }
+.group { margin-bottom: 10px; border: 1px solid #282828; border-radius: 3px; }
+.group-header {
+  background: #181818; padding: 5px 8px; cursor: pointer; font-size: 11px;
+  color: #a66; font-weight: bold; user-select: none; display: flex;
+  justify-content: space-between; align-items: center;
+}
+.group-header:hover { background: #222; }
+.group-header .arrow { transition: transform 0.2s; }
+.group-header.collapsed .arrow { transform: rotate(-90deg); }
+.group-body { padding: 4px 8px 8px; }
+.group-body.hidden { display: none; }
+
+.ctrl { margin-bottom: 5px; }
+.ctrl label { display: flex; justify-content: space-between; margin-bottom: 1px; color: #999; }
+.ctrl label span.val { color: #6a6; font-weight: bold; }
+.ctrl input[type=range] {
+  width: 100%; height: 14px; -webkit-appearance: none; background: #222;
+  border-radius: 2px; outline: none;
+}
+.ctrl input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 10px; height: 14px; background: #888;
+  border-radius: 2px; cursor: pointer;
+}
+.ctrl input[type=range]::-webkit-slider-thumb:hover { background: #aaa; }
+
+.btn-row { display: flex; gap: 4px; margin-bottom: 8px; }
+.btn-row button {
+  flex: 1; padding: 5px; background: #222; border: 1px solid #444;
+  color: #ccc; cursor: pointer; font-family: monospace; font-size: 10px;
+  border-radius: 2px;
+}
+.btn-row button:hover { background: #333; }
+
+#toggle-panel {
+  position: fixed; top: 8px; right: 8px; z-index: 200;
+  background: rgba(0,0,0,0.7); border: 1px solid #555; color: #ccc;
+  padding: 4px 10px; cursor: pointer; font-family: monospace; font-size: 11px;
+  border-radius: 3px; display: none;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<button id="toggle-panel" onclick="document.getElementById('panel').style.display='block';this.style.display='none';">Show Panel</button>
+
+<div id="panel">
+<h1>TOP DISC ADJUSTER</h1>
+<div class="btn-row">
+  <button onclick="exportValues()">Copy Values</button>
+  <button onclick="resetAll()">Reset All</button>
+  <button onclick="document.getElementById('panel').style.display='none';document.getElementById('toggle-panel').style.display='block';">Hide Panel</button>
+</div>
+<div id="controls"></div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// PARAMETER DEFINITIONS
+// Rs = 1. Top disc + front crossing only. No bottom arc, no photon ring.
+// ============================================================
+var PARAMS = {
+  // --- CAMERA ---
+  cam_distance:    { group: 'Camera',         label: 'Distance (Rs)',        min: 5,   max: 50,   val: 13.5,  step: 0.5 },
+  cam_inclination: { group: 'Camera',         label: 'Inclination (deg)',    min: 0,   max: 90,   val: 86.0,  step: 0.5 },
+  cam_fov:         { group: 'Camera',         label: 'FOV (deg)',            min: 10,  max: 90,   val: 67.0,  step: 1.0 },
+
+  // --- ACCRETION DISK ---
+  disk_inner:      { group: 'Accretion Disk', label: 'Inner Radius (Rs)',    min: 1.5, max: 6.0,  val: 3.0,   step: 0.1 },
+  disk_outer:      { group: 'Accretion Disk', label: 'Outer Radius (Rs)',    min: 4.0, max: 20.0, val: 7.5,   step: 0.5 },
+  disk_brightness: { group: 'Accretion Disk', label: 'Brightness',           min: 0.1, max: 8.0,  val: 3.2,   step: 0.1 },
+  disk_temp_inner: { group: 'Accretion Disk', label: 'Inner Temperature',    min: 0.1, max: 5.0,  val: 0.6,   step: 0.05 },
+  disk_temp_falloff:{ group: 'Accretion Disk', label: 'Temp Falloff',        min: 0.1, max: 2.0,  val: 0.5,   step: 0.05 },
+  disk_noise_scale:{ group: 'Accretion Disk', label: 'Noise Scale',          min: 1.0, max: 30.0, val: 12.0,  step: 1.0 },
+  disk_noise_str:  { group: 'Accretion Disk', label: 'Noise Strength',       min: 0.0, max: 1.0,  val: 0.6,   step: 0.05 },
+  disk_rot_speed:  { group: 'Accretion Disk', label: 'Rotation Speed',       min: 0.0, max: 4.0,  val: 1.5,   step: 0.1 },
+
+  // --- DOPPLER ---
+  doppler_str:     { group: 'Doppler Effect',  label: 'Doppler Strength',    min: 0.0, max: 2.0,  val: 1.0,   step: 0.05 },
+  doppler_boost:   { group: 'Doppler Effect',  label: 'Beaming Boost',       min: 0.5, max: 4.0,  val: 2.0,   step: 0.1 },
+
+  // --- STARS ---
+  stars_brightness:{ group: 'Starfield',      label: 'Brightness',           min: 0.0, max: 5.0,  val: 1.3,   step: 0.1 },
+  stars_density:   { group: 'Starfield',      label: 'Density',              min: 20,  max: 500,  val: 310.0, step: 10 },
+
+  // --- POST-PROCESSING ---
+  bloom_str:       { group: 'Post-Processing', label: 'Bloom Strength',      min: 0.0, max: 3.0,  val: 2.0,   step: 0.05 },
+  vignette_str:    { group: 'Post-Processing', label: 'Vignette',            min: 0.0, max: 1.0,  val: 0.2,   step: 0.05 },
+  overall_bright:  { group: 'Post-Processing', label: 'Overall Brightness',  min: 0.1, max: 3.0,  val: 0.65,  step: 0.05 },
+  grain_intensity: { group: 'Post-Processing', label: 'Film Grain',          min: 0.0, max: 0.1,  val: 0.006, step: 0.002 },
+
+  // --- INTEGRATION ---
+  max_steps:       { group: 'Integration',    label: 'Max Steps',            min: 50,  max: 800,  val: 400.0, step: 10 },
+  step_size:       { group: 'Integration',    label: 'Step Size',            min: 0.005, max: 0.1,val: 0.03,  step: 0.005 },
+};
+
+var DEFAULTS = {};
+Object.keys(PARAMS).forEach(function(k) { DEFAULTS[k] = PARAMS[k].val; });
+
+// ============================================================
+// BUILD UI
+// ============================================================
+function buildUI() {
+  var container = document.getElementById('controls');
+  var groups = {};
+  Object.keys(PARAMS).forEach(function(key) {
+    var p = PARAMS[key];
+    if (!groups[p.group]) groups[p.group] = [];
+    groups[p.group].push({ key: key, param: p });
+  });
+
+  Object.keys(groups).forEach(function(groupName) {
+    var div = document.createElement('div');
+    div.className = 'group';
+    var header = document.createElement('div');
+    header.className = 'group-header';
+    header.innerHTML = '<span>' + groupName + '</span><span class="arrow">▼</span>';
+    header.onclick = function() { toggleGroup(this); };
+    div.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'group-body';
+    groups[groupName].forEach(function(item) {
+      var ctrl = document.createElement('div');
+      ctrl.className = 'ctrl';
+      ctrl.innerHTML =
+        '<label><span>' + item.param.label + '</span><span class="val" id="val-' + item.key + '">' + item.param.val + '</span></label>' +
+        '<input type="range" id="slider-' + item.key + '" min="' + item.param.min + '" max="' + item.param.max + '" step="' + item.param.step + '" value="' + item.param.val + '" oninput="updateParam(\'' + item.key + '\', this.value)">';
+      body.appendChild(ctrl);
+    });
+    div.appendChild(body);
+    container.appendChild(div);
+  });
+}
+
+function toggleGroup(header) {
+  header.classList.toggle('collapsed');
+  header.nextElementSibling.classList.toggle('hidden');
+}
+
+function updateParam(key, value) {
+  PARAMS[key].val = parseFloat(value);
+  document.getElementById('val-' + key).textContent = parseFloat(value).toFixed(3);
+  syncUniforms();
+}
+
+function resetAll() {
+  Object.keys(DEFAULTS).forEach(function(k) {
+    PARAMS[k].val = DEFAULTS[k];
+    var slider = document.getElementById('slider-' + k);
+    if (slider) slider.value = DEFAULTS[k];
+    var valEl = document.getElementById('val-' + k);
+    if (valEl) valEl.textContent = DEFAULTS[k].toFixed(3);
+  });
+  syncUniforms();
+}
+
+function exportValues() {
+  var lines = ['// Top Disc Adjuster Export — ' + new Date().toISOString()];
+  Object.keys(PARAMS).forEach(function(k) {
+    if (PARAMS[k].val !== DEFAULTS[k]) {
+      lines.push(k + ': ' + PARAMS[k].val.toFixed(4) + '  // default: ' + DEFAULTS[k]);
+    }
+  });
+  if (lines.length === 1) lines.push('// No values changed from defaults');
+  navigator.clipboard.writeText(lines.join('\n')).then(function() {
+    alert('Copied ' + (lines.length - 1) + ' changed values to clipboard');
+  });
+}
+
+function P(key) { return PARAMS[key].val; }
+
+// ============================================================
+// THREE.JS + SHADER
+// ============================================================
+var shaderUniforms = null;
+
+function initThree() {
+  var canvas = document.getElementById('bg-canvas');
+  var scene = new THREE.Scene();
+  var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  var clock = new THREE.Clock();
+
+  shaderUniforms = {
+    u_time:          { value: 0 },
+    u_resolution:    { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+    u_cam_distance:  { value: P('cam_distance') },
+    u_cam_inclination:{ value: P('cam_inclination') },
+    u_cam_fov:       { value: P('cam_fov') },
+    u_disk_inner:    { value: P('disk_inner') },
+    u_disk_outer:    { value: P('disk_outer') },
+    u_disk_brightness:{ value: P('disk_brightness') },
+    u_disk_temp_inner:{ value: P('disk_temp_inner') },
+    u_disk_temp_falloff:{ value: P('disk_temp_falloff') },
+    u_disk_noise_scale:{ value: P('disk_noise_scale') },
+    u_disk_noise_str:{ value: P('disk_noise_str') },
+    u_disk_rot_speed:{ value: P('disk_rot_speed') },
+    u_doppler_str:   { value: P('doppler_str') },
+    u_doppler_boost: { value: P('doppler_boost') },
+    u_stars_brightness:{ value: P('stars_brightness') },
+    u_stars_density: { value: P('stars_density') },
+    u_bloom_str:     { value: P('bloom_str') },
+    u_vignette_str:  { value: P('vignette_str') },
+    u_overall_bright:{ value: P('overall_bright') },
+    u_grain_intensity:{ value: P('grain_intensity') },
+    u_max_steps:     { value: P('max_steps') },
+    u_step_size:     { value: P('step_size') },
+  };
+
+  var vertexShader = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+
+  // ----------------------------------------------------------------
+  // Fragment shader: Top disc + front crossing only.
+  // Suppresses: bottom lensed arc, photon ring (both in-loop and screen-space).
+  // Method: only render disk crossings where oldPos.y >= 0 (ray descending
+  // through y=0 from above). This keeps the direct disk (wings + front band)
+  // and the top lensed arc, but kills the bottom arc which requires
+  // oldPos.y < 0 → pos.y > 0 (ray ascending through disk from below).
+  // ----------------------------------------------------------------
+  var fragmentShader = `
+    precision highp float;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_cam_distance, u_cam_inclination, u_cam_fov;
+    uniform float u_disk_inner, u_disk_outer, u_disk_brightness;
+    uniform float u_disk_temp_inner, u_disk_temp_falloff;
+    uniform float u_disk_noise_scale, u_disk_noise_str, u_disk_rot_speed;
+    uniform float u_doppler_str, u_doppler_boost;
+    uniform float u_stars_brightness, u_stars_density;
+    uniform float u_bloom_str, u_vignette_str, u_overall_bright, u_grain_intensity;
+    uniform float u_max_steps, u_step_size;
+    varying vec2 vUv;
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+    float hash3(vec3 p) {
+      return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+    }
+    float noise(vec2 p) {
+      vec2 i = floor(p); vec2 f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1,0)), u.x),
+                 mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x), u.y);
+    }
+    float fbm(vec2 p) {
+      float v = 0.0, a = 0.5;
+      mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
+      for (int i = 0; i < 4; i++) {
+        v += a * noise(p);
+        p = rot * p * 2.0 + vec2(100.0);
+        a *= 0.5;
+      }
+      return v;
+    }
+
+    // Color ramp: cosmic horror palette
+    // outer(cool) → deep purple/violet → crimson → bright red → gold/orange inner(hot)
+    vec3 discColor(float t) {
+      vec3 darkPurple = vec3(0.15, 0.02, 0.12);   // outer — dark violet
+      vec3 deepRed    = vec3(0.45, 0.02, 0.04);    // mid-outer — deep crimson
+      vec3 brightRed  = vec3(0.85, 0.08, 0.03);    // mid — vivid red
+      vec3 hotOrange  = vec3(1.0, 0.45, 0.05);     // mid-inner — hot orange
+      vec3 gold       = vec3(1.0, 0.78, 0.3);      // inner — gold ring
+      if (t < 0.2) return mix(darkPurple, deepRed, t * 5.0);
+      if (t < 0.45) return mix(deepRed, brightRed, (t - 0.2) * 4.0);
+      if (t < 0.7) return mix(brightRed, hotOrange, (t - 0.45) * 4.0);
+      return mix(hotOrange, gold, (t - 0.7) * 3.333);
+    }
+
+    vec3 starfield(vec3 dir) {
+      vec3 col = vec3(0.0);
+      vec3 grid = floor(dir * u_stars_density);
+      float s = hash3(grid);
+      float bright = pow(s, 45.0);
+      float twinkle = 0.7 + 0.3 * sin(u_time * (2.0 + s * 4.0) + s * 6.28);
+      vec3 tint = mix(vec3(0.7, 0.8, 1.0), vec3(1.0, 0.85, 0.6), hash3(grid + 7.0));
+      col += tint * bright * twinkle * u_stars_brightness;
+      vec3 grid2 = floor(dir * u_stars_density * 2.5);
+      float s2 = hash3(grid2);
+      col += vec3(0.9, 0.9, 1.0) * pow(s2, 40.0) * u_stars_brightness * 0.3;
+      return col;
+    }
+
+    vec3 ACESFilm(vec3 x) {
+      return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+    }
+
+    void main() {
+      vec2 uv = (gl_FragCoord.xy / u_resolution.xy) * 2.0 - 1.0;
+      uv.x *= u_resolution.x / u_resolution.y;
+
+      float incl = radians(u_cam_inclination);
+      float fov  = radians(u_cam_fov);
+      float camR = u_cam_distance;
+      float halfTan = tan(fov * 0.5);
+
+      vec3 camPos = vec3(0.0, camR * cos(incl), -camR * sin(incl));
+      vec3 camFwd = normalize(-camPos);
+
+      vec3 wUp = vec3(0.0, 1.0, 0.0);
+      if (abs(dot(camFwd, wUp)) > 0.999) wUp = vec3(0.0, 0.0, 1.0);
+      vec3 camRight = normalize(cross(camFwd, wUp));
+      vec3 camUp    = cross(camRight, camFwd);
+
+      vec3 ray = normalize(camFwd + uv.x * halfTan * camRight + uv.y * halfTan * camUp);
+
+      // --- Orbital plane ---
+      vec3 nHat = normalize(camPos);
+      vec3 cp   = cross(nHat, ray);
+      float cpLen = length(cp);
+
+      vec3 pNormal;
+      vec3 tHat;
+      float rayN, rayT;
+
+      if (cpLen < 1e-5) {
+        pNormal = normalize(cross(nHat, camRight));
+        tHat = cross(pNormal, nHat);
+        rayN = dot(ray, nHat);
+        rayT = 0.0;
+      } else {
+        pNormal = cp / cpLen;
+        tHat = cross(pNormal, nHat);
+        rayN = dot(ray, nHat);
+        rayT = dot(ray, tHat);
+      }
+
+      // --- Initial conditions ---
+      float u0 = 1.0 / camR;
+      float du = 0.0;
+      if (abs(rayT) > 1e-7) {
+        du = -(rayN / rayT) * u0;
+      }
+
+      float uCur = u0;
+      float phi  = 0.0;
+      float dphi = u_step_size;
+      int nMax = int(u_max_steps);
+
+      vec3  diskColor = vec3(0.0);
+      float diskAlpha = 0.0;
+      bool  absorbed  = false;
+      bool  escaped   = false;
+
+      vec3 pos    = camPos;
+      vec3 oldPos = camPos;
+
+      for (int i = 0; i < 800; i++) {
+        if (i >= nMax) break;
+
+        oldPos = pos;
+
+        // Leapfrog (kick-drift-kick)
+        float ddu1 = -uCur + 1.5 * uCur * uCur;
+        du += 0.5 * ddu1 * dphi;
+        uCur += du * dphi;
+        phi  += dphi;
+        float ddu2 = -uCur + 1.5 * uCur * uCur;
+        du += 0.5 * ddu2 * dphi;
+
+        if (uCur > 1.0) { absorbed = true; break; }
+
+        if (uCur > 0.0 && du < 0.0 && uCur < u0 * 0.8) {
+          escaped = true;
+        }
+
+        if (uCur <= 0.0) {
+          escaped = true;
+          uCur = max(uCur, 1e-6);
+          break;
+        }
+
+        float rCur = 1.0 / uCur;
+        pos = (cos(phi) * nHat + sin(phi) * tHat) * rCur;
+
+        // --- Disk crossing: y=0, TOP-ONLY FILTER ---
+        // Only render when ray descends through disk (oldPos.y > 0, pos.y < 0).
+        // This keeps: direct disk (wings + front band) and top lensed arc.
+        // This kills: bottom lensed arc (oldPos.y < 0, pos.y > 0).
+        if (i > 0 && oldPos.y > 0.0 && pos.y < 0.0) {
+          float tCross = oldPos.y / (oldPos.y - pos.y);
+          vec3 cPos = mix(oldPos, pos, tCross);
+          float cR = length(cPos);
+
+          if (cR > u_disk_inner && cR < u_disk_outer) {
+            float diskAngle = atan(cPos.z, cPos.x);
+
+            float rNorm = (cR - u_disk_inner) / (u_disk_outer - u_disk_inner);
+            rNorm = clamp(rNorm, 0.0, 1.0);
+            float temp = u_disk_temp_inner * pow(1.0 - rNorm, u_disk_temp_falloff);
+            temp = clamp(temp, 0.0, 1.0);
+
+            float nAng = diskAngle + u_time * u_disk_rot_speed / max(cR * 0.5, 0.5);
+            float diskN = fbm(vec2(nAng * u_disk_noise_scale, cR * 2.5));
+            float structure = 1.0 - u_disk_noise_str + u_disk_noise_str * diskN;
+
+            float innerFade = smoothstep(u_disk_inner, u_disk_inner + 0.4, cR);
+            float outerFade = smoothstep(u_disk_outer, u_disk_outer - 1.5, cR);
+            float edgeFade = innerFade * outerFade;
+
+            float radialBright = pow(u_disk_inner / cR, 1.5);
+
+            float vOrb = 0.0;
+            if (cR > 1.05) {
+              vOrb = 1.0 / sqrt(2.0 * (cR - 1.0));
+              vOrb = min(vOrb, 0.85);
+            }
+            vec3 orbDir = normalize(vec3(-cPos.z, 0.0, cPos.x));
+            vec3 viewDir = normalize(cPos - camPos);
+            float dShift = 1.0 + vOrb * dot(orbDir, viewDir) * u_doppler_str;
+            dShift = clamp(dShift, 0.2, 3.5);
+            float dFactor = pow(dShift, u_doppler_boost);
+
+            vec3 dCol = discColor(temp) * structure * edgeFade * radialBright;
+            dCol *= u_disk_brightness * dFactor;
+
+            float alpha = edgeFade * structure * 0.85;
+            diskColor += dCol * (1.0 - diskAlpha);
+            diskAlpha = min(diskAlpha + alpha * (1.0 - diskAlpha), 1.0);
+          }
+        }
+
+        if (escaped) break;
+      }
+
+      // --- Compose ---
+      vec3 col = vec3(0.0);
+
+      if (absorbed) {
+        col = diskColor;
+      } else {
+        vec3 skyDir = normalize(pos);
+        vec3 stars = starfield(skyDir);
+        col = stars * (1.0 - diskAlpha) + diskColor;
+      }
+
+      // No photon ring — removed entirely.
+
+      // Bloom
+      float lum = dot(col, vec3(0.299, 0.587, 0.114));
+      col *= 1.0 + u_bloom_str * max(0.0, lum - 0.3);
+
+      // Vignette
+      float screenDist = length(uv);
+      col *= max(1.0 - u_vignette_str * screenDist * screenDist, 0.0);
+
+      // Grain
+      col += (hash(gl_FragCoord.xy + u_time) - 0.5) * u_grain_intensity;
+
+      // Brightness
+      col *= u_overall_bright;
+
+      // ACES + gamma
+      col = ACESFilm(col);
+      col = pow(max(col, 0.0), vec3(1.0 / 2.2));
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `;
+
+  var geometry = new THREE.PlaneGeometry(2, 2);
+  var material = new THREE.ShaderMaterial({
+    uniforms: shaderUniforms,
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    transparent: true, depthWrite: false, depthTest: false
+  });
+  scene.add(new THREE.Mesh(geometry, material));
+
+  window.addEventListener('resize', function() {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    shaderUniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    shaderUniforms.u_time.value = clock.getElapsedTime() * 0.3;
+    renderer.render(scene, camera);
+  }
+  animate();
+}
+
+function syncUniforms() {
+  if (!shaderUniforms) return;
+  Object.keys(PARAMS).forEach(function(key) {
+    var uName = 'u_' + key;
+    if (shaderUniforms[uName]) {
+      shaderUniforms[uName].value = PARAMS[key].val;
+    }
+  });
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+buildUI();
+initThree();
+</script>
+</body>
+</html>
