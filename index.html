@@ -83,57 +83,26 @@
             transform: none !important;
         }
 
-        /* --- Phase 1: "The Void" fades in: transparent black → red → white (2.5s) --- */
+        /* Title spans — JS controls visibility and color transitions */
         .title-the-void {
             display: inline;
-            opacity: 0;
-            color: #000000;
-            animation: theVoidPhase 2.5s ease-out forwards;
+            color: #ffffff;
+            transition: color 0.8s ease;
         }
 
-        @keyframes theVoidPhase {
-            0%   { opacity: 0; color: #000000; }
-            30%  { opacity: 1; color: #1a0000; }
-            60%  { color: #8b0000; }
-            85%  { color: #cc3333; }
-            100% { color: #ffffff; }
-        }
-
-        /* --- Phase 2: "at Crimson Sunset" cascading color wave (2.5s, delayed 2.5s) --- */
         .title-subtitle {
             display: inline;
+            color: #ffffff;
         }
+
         .title-subtitle .cascade-letter {
             display: inline-block;
-            opacity: 0;
-            animation: cascadeWave 2.5s ease-out forwards;
-            min-width: 0.3em; /* preserve space width */
+            color: #ffffff;
+            transition: color 0.15s ease;
+            min-width: 0.3em;
         }
 
-        @keyframes cascadeWave {
-            0%   { opacity: 0; color: #1a0000; }
-            10%  { opacity: 1; color: #2d0000; }
-            15%  { color: #4a0000; }
-            20%  { color: #6b0000; }
-            25%  { color: #8b0000; }
-            30%  { color: #a52a00; }
-            35%  { color: #b84400; }
-            40%  { color: #cc5500; }
-            45%  { color: #d46a00; }
-            50%  { color: #dd7700; }
-            55%  { color: #e68a00; }
-            60%  { color: #ee9911; }
-            65%  { color: #dd7700; }
-            70%  { color: #cc5500; }
-            75%  { color: #bb3300; }
-            80%  { color: #cc5544; }
-            85%  { color: #dd8877; }
-            90%  { color: #eebbaa; }
-            95%  { color: #f5ddd5; }
-            100% { color: #ffffff; }
-        }
-
-        /* --- Phase 3: "Void" tendrils start after 5s --- */
+        /* "Void" tendrils — activated by JS after intro */
         .void-word {
             display: inline;
             position: relative;
@@ -141,7 +110,7 @@
             z-index: 11;
         }
         .void-word.tendrils-active {
-            animation: tendrils 8s infinite ease-in-out;
+            animation: tendrils 8s infinite ease-in-out !important;
         }
 
         @keyframes tendrils {
@@ -392,27 +361,82 @@
     </main>
 
     <script>
-        // Split "at Crimson Sunset" into individual letters for cascade animation
         document.addEventListener('DOMContentLoaded', function() {
+            var theVoid = document.querySelector('.title-the-void');
             var subtitle = document.getElementById('title-subtitle');
-            var text = subtitle.textContent;
-            subtitle.textContent = '';
-            var totalLetters = text.length;
-            for (var i = 0; i < totalLetters; i++) {
-                var span = document.createElement('span');
-                span.className = 'cascade-letter';
-                span.textContent = text[i] === ' ' ? '\u00A0' : text[i];
-                // Stagger: 2.5s base delay + spread each letter across 1.5s of the 2.5s window
-                var stagger = 2.5 + (i / totalLetters) * 1.5;
-                span.style.animationDelay = stagger.toFixed(2) + 's';
-                subtitle.appendChild(span);
-            }
+            var voidWord = document.querySelector('.void-word');
 
-            // Start tendrils on "Void" after both phases complete (5s)
-            setTimeout(function() {
-                var voidWord = document.querySelector('.void-word');
-                if (voidWord) voidWord.classList.add('tendrils-active');
-            }, 5000);
+            // Hide everything initially
+            theVoid.style.opacity = '0';
+            subtitle.style.opacity = '0';
+
+            // === PHASE 1: "The Void" — black → red → white (2.5s) ===
+            var voidColors = ['#000000','#1a0000','#3a0000','#5a0000','#8b0000','#aa2200','#cc3333','#dd6655','#eeaaaa','#ffffff'];
+            var voidStep = 0;
+            theVoid.style.color = '#000000';
+            theVoid.style.opacity = '1';
+
+            var voidInterval = setInterval(function() {
+                voidStep++;
+                if (voidStep >= voidColors.length) {
+                    clearInterval(voidInterval);
+                    theVoid.style.color = '#ffffff';
+                    startPhase2();
+                    return;
+                }
+                theVoid.style.color = voidColors[voidStep];
+            }, 250); // 10 steps × 250ms = 2.5s
+
+            // === PHASE 2: "at Crimson Sunset" — cascading color wave (2.5s) ===
+            function startPhase2() {
+                var text = subtitle.textContent;
+                subtitle.textContent = '';
+                subtitle.style.opacity = '1';
+
+                var cascadeColors = [
+                    '#1a0000','#2d0000','#4a0000','#6b0000','#8b0000',
+                    '#a52a00','#b84400','#cc5500','#d46a00','#dd7700',
+                    '#e68a00','#ee9911','#dd7700','#cc5500','#bb3300',
+                    '#cc5544','#dd8877','#eebbaa','#f5ddd5','#ffffff'
+                ];
+
+                var spans = [];
+                for (var i = 0; i < text.length; i++) {
+                    var span = document.createElement('span');
+                    span.className = 'cascade-letter';
+                    span.textContent = text[i] === ' ' ? '\u00A0' : text[i];
+                    span.style.color = 'transparent';
+                    subtitle.appendChild(span);
+                    spans.push(span);
+                }
+
+                // Stagger each letter's color cycle
+                var totalLetters = spans.length;
+                var cycleTime = 2500; // 2.5s total
+                var staggerDelay = 80; // ms between each letter starting
+
+                spans.forEach(function(span, idx) {
+                    setTimeout(function() {
+                        var step = 0;
+                        var stepTime = Math.floor((cycleTime - idx * staggerDelay) / cascadeColors.length);
+                        stepTime = Math.max(stepTime, 40);
+                        var interval = setInterval(function() {
+                            if (step >= cascadeColors.length) {
+                                clearInterval(interval);
+                                span.style.color = '#ffffff';
+                                return;
+                            }
+                            span.style.color = cascadeColors[step];
+                            step++;
+                        }, stepTime);
+                    }, idx * staggerDelay);
+                });
+
+                // === PHASE 3: Tendrils after both phases ===
+                setTimeout(function() {
+                    if (voidWord) voidWord.classList.add('tendrils-active');
+                }, cycleTime + 500);
+            }
         });
     </script>
     <script src="./assets/js/visuals-engine.js" defer></script>
