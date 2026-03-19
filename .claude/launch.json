@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "static-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "require('http').createServer((q,r)=>{const fs=require('fs'),p=require('path'),u=decodeURIComponent(q.url.split('?')[0]),f=p.join('.',u==='/'?'/index.html':u),m={'html':'text/html','js':'application/javascript','css':'text/css','ogg':'audio/ogg','mp3':'audio/mpeg','wav':'audio/wav','json':'application/json','jpg':'image/jpeg','png':'image/png'}[p.extname(f).slice(1)]||'application/octet-stream';fs.readFile(f,(e,d)=>{if(e){r.writeHead(404);r.end('Not found')}else{r.writeHead(200,{'Content-Type':m,'Access-Control-Allow-Origin':'*'});r.end(d)}})}).listen(8091,()=>console.log('Server on 8091'))"],
+      "port": 8091,
+      "autoPort": false
+    }
+  ]
+}

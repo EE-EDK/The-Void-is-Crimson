@@ -1,6 +1,6 @@
 /**
  * @file visuals-engine.js
- * @brief High-Fidelity Generative WebGL Engine for "The Void at Crimson Sunset"
+ * @brief High-Fidelity Generative WebGL Engine for "The Void is Crimson"
  * @version 2.0.0
  * @date 2026-03-18
  *

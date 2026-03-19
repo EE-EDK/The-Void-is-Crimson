@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-"The Void at Crimson Sunset" — an interactive cosmic horror web experience with a three-act narrative structure. Pure static site, no build tools.
+"The Void is Crimson" — an interactive cosmic horror web experience with a three-act narrative structure. Pure static site, no build tools.
 
 ## Project Structure
 
@@ -47,7 +47,7 @@ Temp-TBSHT/                         # Temporary test files (not deployed)
 No build step. Edit files directly and test in browser.
 
 - **Deployment**: GitHub Pages from `main` branch
-- **Live URL**: https://ee-edk.github.io/The-Void-at-Crimson-Sunset/
+- **Live URL**: https://ee-edk.github.io/The-Void-is-Crimson/
 - No test framework — manual browser testing
 
 ## Key Architecture

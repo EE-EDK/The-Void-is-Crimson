@@ -1,5 +1,5 @@
 /**
- * Horror Samples Engine — Howler.js integration for "The Void at Crimson Sunset"
+ * Horror Samples Engine — Howler.js integration for "The Void is Crimson"
  *
  * Manages 48 Ulrich Wehner professional sounds + 10 custom extras via Howler.js.
  * Provides atmosphere crossfading, stinger playback, build-up management,

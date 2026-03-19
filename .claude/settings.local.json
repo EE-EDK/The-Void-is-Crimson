@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(du -sh C:/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/Temp-TBSHT/35318__ulrich_wehner__horror-stingers-jump-scares/*.wav)",
+      "Bash(ffmpeg -version)",
+      "Bash(BASE=\"/c/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/Temp-TBSHT\")",
+      "Bash(mkdir -p \"$BASE/audio-compressed/stingers\" \"$BASE/audio-compressed/buildups\" \"$BASE/audio-compressed/atmospheres\")",
+      "Bash(BASE=\"/c/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/Temp-TBSHT/audio-compressed\" echo \"=== Stingers ===\")",
+      "Read(//c/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/$BASE/stingers/**)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:61021/\")",
+      "Bash(cp \"C:/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/Temp-TBSHT/audio-compressed/stingers/\"* \"C:/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/assets/audio/stingers/\")",
+      "Bash(cp \"C:/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/Temp-TBSHT/audio-compressed/buildups/\"* \"C:/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/assets/audio/buildups/\")",
+      "Bash(cp \"C:/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/Temp-TBSHT/audio-compressed/atmospheres/\"* \"C:/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/assets/audio/atmospheres/\")",
+      "Bash(cp \"C:/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/Temp-TBSHT/audio-compressed/extras/\"* \"C:/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/Void at Crimson Sunset/The-Void-at-Crimson-Sunset/assets/audio/extras/\")",
+      "Read(//c/Users/edk7c/ENGINEERING-PROJECTS/Web-Projects/**)",
+      "Bash(mv \"Void at Crimson Sunset\" \"Void is Crimson\")",
+      "Bash(gh repo:*)"
+    ]
+  }
+}

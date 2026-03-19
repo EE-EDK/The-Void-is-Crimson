@@ -1,5 +1,5 @@
 /**
- * Horror Effects Engine for "The Void at Crimson Sunset"
+ * Horror Effects Engine for "The Void is Crimson"
  *
  * Enhanced audio engine with dissonant cluster chords, metal scrapes,
  * reverse swells, binaural beating, impact hits, and breath sounds.
