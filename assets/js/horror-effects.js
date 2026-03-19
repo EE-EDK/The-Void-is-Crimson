@@ -30,7 +30,7 @@
             scrapeVolume: 0.08,      // Comb filters self-amplify
             breathVolume: 0.07,      // Background texture
             binauralVolume: 0.05,    // Subliminal only
-            maxConcurrentSounds: 4,  // Polyphony limit to prevent stacking
+            maxConcurrentSounds: 6,  // Polyphony limit — increased for Howler sample layers
         },
         visual: {
             glitchDuration: 300,
@@ -56,6 +56,9 @@
     var reverbNode = null;
     var droneBus = null;       // Bus for persistent drone/binaural
     var effectBus = null;      // Bus for transient one-shot effects
+    var sampleBus = null;      // Bus for ALL Howler output (0.50)
+    var atmosphereBus = null;  // Sub-bus for Howler atmospheres (0.25)
+    var stingerBus = null;     // Sub-bus for Howler stingers/buildups (0.70)
     var sharedNoiseBuffer = null;     // Pre-generated white noise (4s)
     var sharedLongNoiseBuffer = null; // Pre-generated white noise (7s, co-prime)
     var ready = false;
@@ -80,7 +83,12 @@
             return;
         }
         try {
-            ctx = new (window.AudioContext || window.webkitAudioContext)();
+            // Share AudioContext with Howler.js if available (avoids dual contexts)
+            if (typeof Howler !== 'undefined' && Howler.ctx) {
+                ctx = Howler.ctx;
+            } else {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
 
             // --- SAFETY LIMITER (prevents runaway feedback from ever reaching speakers) ---
             var limiter = ctx.createDynamicsCompressor();
@@ -103,6 +111,32 @@
             effectBus = ctx.createGain();
             effectBus.gain.value = 0.7;
             effectBus.connect(master);
+
+            // --- HOWLER SAMPLE BUSES (tiered volume governance) ---
+            sampleBus = ctx.createGain();
+            sampleBus.gain.value = 0.50;
+            sampleBus.connect(master);
+
+            atmosphereBus = ctx.createGain();
+            atmosphereBus.gain.value = 0.25;
+            atmosphereBus.connect(sampleBus);
+
+            stingerBus = ctx.createGain();
+            stingerBus.gain.value = 0.70;
+            stingerBus.connect(sampleBus);
+
+            // Route Howler's master gain through our sample bus
+            if (typeof Howler !== 'undefined' && Howler.masterGain) {
+                try {
+                    Howler.masterGain.disconnect();
+                    Howler.masterGain.connect(sampleBus);
+                } catch (e) { /* already disconnected */ }
+            }
+
+            // Connect HorrorSamples to our buses
+            if (typeof window.HorrorSamples !== 'undefined') {
+                window.HorrorSamples.setupBuses(sampleBus, atmosphereBus, stingerBus);
+            }
 
             // --- PRE-GENERATE NOISE BUFFERS (avoid per-sound allocation) ---
             var noiseDur = 4;
@@ -1083,6 +1117,13 @@
                         pulseVignette(0.55, 3000);
                         break;
                 }
+
+                // --- HOWLER SAMPLE LAYERS ---
+                // Fire any Howler samples specified via data-stinger, data-buildup,
+                // data-atmosphere, data-extra, data-extra2, data-recipe attributes
+                if (typeof window.HorrorSamples !== 'undefined') {
+                    window.HorrorSamples.handleTriggerElement(el);
+                }
             }
         }, { threshold: 0.15 });
 
@@ -1439,6 +1480,11 @@
         setVignetteIntensity: setVignetteIntensity,
         enableTrail: function () { cursorTrailOn = true; },
         disableTrail: function () { cursorTrailOn = false; },
+        // Audio bus access for external modules
+        getSampleBus: function () { return sampleBus; },
+        getAtmosphereBus: function () { return atmosphereBus; },
+        getStingerBus: function () { return stingerBus; },
+        getContext: function () { return ctx; },
     };
 
 })();

@@ -3,44 +3,97 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Audio Isolation Test</title>
+<title>Audio Integration Test Bench v3</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #111; color: #ddd; font-family: monospace; padding: 20px; }
-h1 { color: #c33; margin-bottom: 10px; font-size: 1.4em; }
-p.info { color: #888; margin-bottom: 20px; font-size: 0.85em; }
-.section { margin-bottom: 24px; border: 1px solid #333; padding: 16px; border-radius: 4px; }
-.section h2 { color: #a66; font-size: 1em; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 6px; }
-.section p.note { color: #666; font-size: 0.8em; margin-bottom: 8px; }
+body { background: #0a0a0a; color: #ddd; font-family: monospace; padding: 20px; max-width: 1400px; margin: 0 auto; }
+h1 { color: #c33; margin-bottom: 4px; font-size: 1.4em; }
+h1 small { color: #666; font-size: 0.6em; font-weight: normal; }
+p.info { color: #888; margin-bottom: 16px; font-size: 0.82em; line-height: 1.4; }
+
+.section { margin-bottom: 20px; border: 1px solid #2a2a2a; padding: 14px; border-radius: 4px; background: #111; }
+.section h2 { color: #a66; font-size: 0.95em; margin-bottom: 8px; border-bottom: 1px solid #2a2a2a; padding-bottom: 5px; }
+.section h3 { color: #77a; font-size: 0.85em; margin: 10px 0 6px; }
+.section p.note { color: #555; font-size: 0.78em; margin-bottom: 6px; }
+
 button {
-  background: #222; color: #ccc; border: 1px solid #555; padding: 8px 16px;
-  margin: 4px; cursor: pointer; border-radius: 3px; font-family: monospace; font-size: 0.85em;
+  background: #1a1a1a; color: #bbb; border: 1px solid #444; padding: 6px 12px;
+  margin: 3px; cursor: pointer; border-radius: 3px; font-family: monospace; font-size: 0.8em;
+  transition: background 0.15s;
 }
-button:hover { background: #333; border-color: #888; }
-button:active { background: #444; }
-button.stop { background: #400; border-color: #800; }
-button.stop:hover { background: #600; }
-button.active-loop { background: #040; border-color: #0a0; color: #0f0; }
-#status { color: #6a6; margin-top: 12px; font-size: 0.85em; min-height: 1.2em; }
-#event-log { margin-top: 12px; color: #888; font-size: 0.75em; max-height: 120px; overflow-y: auto; border: 1px solid #222; padding: 6px; }
+button:hover { background: #2a2a2a; border-color: #777; color: #fff; }
+button:active { background: #333; }
+button.stop { background: #300; border-color: #700; color: #f88; }
+button.stop:hover { background: #500; }
+button.active-loop { background: #031; border-color: #0a0; color: #0f0; }
+button.loading { opacity: 0.5; cursor: wait; }
+button.loaded { border-color: #555; }
+button.sample-playing { background: #330; border-color: #a80; color: #fc0; }
+button.combo { background: #1a1a2a; border-color: #55a; color: #aaf; }
+button.combo:hover { background: #2a2a3a; }
+button.scene { background: #2a1a1a; border-color: #a55; color: #faa; }
+button.scene:hover { background: #3a2a2a; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px; }
+.grid button { width: 100%; text-align: left; padding: 8px 10px; }
+
+.controls-row { display: flex; align-items: center; gap: 12px; margin: 6px 0; flex-wrap: wrap; }
+.controls-row label { color: #888; font-size: 0.78em; white-space: nowrap; }
+.controls-row input[type="range"] { width: 120px; accent-color: #c33; }
+.controls-row span { color: #aaa; font-size: 0.78em; min-width: 30px; }
+
+#status { color: #6a6; margin: 8px 0; font-size: 0.82em; min-height: 1.2em; }
+#event-log { color: #666; font-size: 0.72em; max-height: 160px; overflow-y: auto; border: 1px solid #1a1a1a; padding: 6px; background: #080808; border-radius: 3px; }
+#event-log div { padding: 1px 0; border-bottom: 1px solid #111; }
+
+.load-status { display: inline-block; font-size: 0.72em; padding: 2px 6px; border-radius: 2px; margin-left: 8px; }
+.load-status.pending { color: #888; }
+.load-status.loaded { color: #6a6; }
+.load-status.error { color: #f66; }
+
+#spatial-canvas { border: 1px solid #333; border-radius: 50%; cursor: crosshair; display: block; margin: 10px auto; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 
-<h1>Audio Isolation Test Bench v2</h1>
-<p class="info">Click "Init Audio" first. Individual buttons test single sounds. Background loops replicate the live page behavior.</p>
+<h1>Audio Integration Test Bench v3 <small>Howler.js + Web Audio Synth</small></h1>
+<p class="info">Tests all 48 Ulrich Wehner samples via Howler.js alongside the existing synthesized horror sounds. Click "Init Audio" first.<br>
+Sounds by <a href="https://freesound.org/people/Ulrich_Wehner/" style="color:#a66;">Ulrich Wehner</a> — CC-BY 4.0</p>
+
 <div id="status">Audio not initialized</div>
 <div id="event-log"></div>
 
+<!-- ===== SETUP ===== -->
 <div class="section">
-  <h2>Setup</h2>
-  <button onclick="initAudio()">Init Audio</button>
-  <button class="stop" onclick="killAll()">KILL ALL SOUND</button>
+  <h2>Master Controls</h2>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <button onclick="initAudio()">Init Audio</button>
+    <button class="stop" onclick="killAll()">KILL ALL</button>
+    <button class="stop" onclick="stopAllSamples()">Stop Samples</button>
+  </div>
+  <div class="controls-row">
+    <label>Master Vol:</label>
+    <input type="range" id="master-vol" min="0" max="100" value="30" oninput="setMasterVol(this.value)">
+    <span id="master-vol-val">0.30</span>
+    <label style="margin-left:20px;">Sample Bus:</label>
+    <input type="range" id="sample-vol" min="0" max="100" value="60" oninput="setSampleVol(this.value)">
+    <span id="sample-vol-val">0.60</span>
+  </div>
+  <div class="controls-row">
+    <label>Rate (samples):</label>
+    <input type="range" id="global-rate" min="25" max="200" value="100" oninput="document.getElementById('rate-val').textContent=((this.value/100).toFixed(2)+'x')">
+    <span id="rate-val">1.00x</span>
+  </div>
+  <p class="note" id="load-info">Howler: not loaded</p>
 </div>
 
+<!-- ===== SYNTH: BACKGROUND LOOPS ===== -->
 <div class="section">
-  <h2>Background Loops (these run continuously on the live page)</h2>
-  <p class="note">Toggle these ON to replicate the live page. The screech likely appears when these stack over time.</p>
+  <h2>Synthesized — Background Loops</h2>
+  <p class="note">These replicate the live page behavior from horror-effects.js</p>
   <button id="btn-drone" onclick="toggleDrone()">Drone: OFF</button>
   <button id="btn-whisper-loop" onclick="toggleWhisperLoop()">Whisper Loop: OFF</button>
   <button id="btn-breath-loop" onclick="toggleBreathLoop()">Breath Loop: OFF</button>
@@ -49,8 +102,9 @@ button.active-loop { background: #040; border-color: #0a0; color: #0f0; }
   <button id="btn-all-loops" onclick="toggleAllLoops()">ALL LOOPS: OFF</button>
 </div>
 
+<!-- ===== SYNTH: ONE-SHOTS ===== -->
 <div class="section">
-  <h2>Individual Sounds (one-shot)</h2>
+  <h2>Synthesized — One-Shot Sounds</h2>
   <button onclick="testWhisper()">Whisper</button>
   <button onclick="testBreath()">Breath</button>
   <button onclick="testHeartbeat()">Heartbeat</button>
@@ -63,22 +117,86 @@ button.active-loop { background: #040; border-color: #0a0; color: #0f0; }
   <button onclick="testSuddenSilence()">Sudden Silence</button>
 </div>
 
+<!-- ===== SAMPLE: STINGERS ===== -->
 <div class="section">
-  <h2>Combo Triggers (as used in scroll triggers)</h2>
-  <button onclick="testWhisperBurst()">Whisper Burst (3x whisper + breath)</button>
-  <button onclick="testRumbleCombo()">Rumble + Impact</button>
-  <button onclick="testBleedCombo()">Whisper + Dissonant Chord</button>
+  <h2>Stingers — Jump Scares <span class="load-status pending" id="stingers-status">loading...</span></h2>
+  <p class="note">16 short one-shot stingers. Click to play. Uses global rate slider.</p>
+  <div class="grid" id="stingers-grid"></div>
 </div>
 
+<!-- ===== SAMPLE: BUILD-UPS ===== -->
+<div class="section">
+  <h2>Build-ups — Risers <span class="load-status pending" id="buildups-status">loading...</span></h2>
+  <p class="note">16 tension-building risers. Click to play/stop. Longer sounds (10-30s).</p>
+  <div class="grid" id="buildups-grid"></div>
+</div>
+
+<!-- ===== SAMPLE: ATMOSPHERES ===== -->
+<div class="section">
+  <h2>Atmospheres — Ambient Loops <span class="load-status pending" id="atmospheres-status">loading...</span></h2>
+  <p class="note">16 looping ambiences. Only one active at a time — clicking another crossfades over 3s. Click active to stop.</p>
+  <div class="grid" id="atmospheres-grid"></div>
+</div>
+
+<!-- ===== SAMPLE: EXTRAS (missing sounds) ===== -->
+<div class="section">
+  <h2>Extras — Custom Sourced Sounds <span class="load-status pending" id="extras-status">loading...</span></h2>
+  <p class="note">10 additional sounds to fill narrative gaps. Click to play/stop. Viola drone and void wind loop.</p>
+  <div class="grid" id="extras-grid"></div>
+</div>
+
+<!-- ===== INTEGRATION COMBOS ===== -->
+<div class="two-col">
+  <div class="section">
+    <h2>Integration Combos</h2>
+    <p class="note">Layer Howler samples with synthesized sounds</p>
+    <button class="combo" onclick="comboStingerPlusImpact()">Stinger + Synth Impact</button>
+    <button class="combo" onclick="comboAtmoPlusDrone()">Atmosphere + Drone</button>
+    <button class="combo" onclick="comboBuildupToStinger()">Build-up → Stinger</button>
+    <button class="combo" onclick="comboWhisperBurst()">Whisper Burst + Stinger</button>
+    <button class="combo" onclick="comboRumbleLayered()">Rumble + Build-up</button>
+    <button class="combo" onclick="comboBleedLayered()">Bleed + Atmo Swell</button>
+  </div>
+
+  <div class="section">
+    <h2>Full Scene Tests</h2>
+    <p class="note">Simulate complete narrative moments from the acts</p>
+    <button class="scene" onclick="sceneAct1Opening()">Act I: The Arrival</button>
+    <button class="scene" onclick="sceneAct1Climax()">Act I: Apotheosis</button>
+    <button class="scene" onclick="sceneAct2Weave()">Act II: Blue Light</button>
+    <button class="scene" onclick="sceneAct3Scavengers()">Act III: Scavengers</button>
+    <button class="scene" onclick="sceneAct3Transfer()">Act III: The Transfer</button>
+  </div>
+</div>
+
+<!-- ===== SPATIAL AUDIO ===== -->
+<div class="section">
+  <h2>Spatial Audio Test</h2>
+  <p class="note">Click/drag on the circle to position a stinger in 3D space. Center = listener position. Uses Howler spatial plugin + HRTF. Best with headphones.</p>
+  <div style="text-align:center;">
+    <canvas id="spatial-canvas" width="300" height="300"></canvas>
+    <br>
+    <button onclick="spatialPlayAtPosition()">Play Stinger at Position</button>
+    <button onclick="spatialOrbit()">Orbit Sound Around Listener</button>
+    <button class="stop" onclick="spatialStop()">Stop Spatial</button>
+    <span style="color:#888; font-size:0.78em; margin-left:10px;" id="spatial-pos">x: 0.0, z: 0.0</span>
+  </div>
+</div>
+
+<script src="../howler-Javascript/dist/howler.min.js"></script>
+<script src="../howler-Javascript/dist/howler.spatial.min.js"></script>
 <script>
 'use strict';
 
+// ========================================================================
+// STATE
+// ========================================================================
 var ctx = null;
 var master = null;
 var limiter = null;
+var sampleBus = null;
 var activeNodes = [];
 
-// Loop states
 var droneActive = false;
 var whisperLoopActive = false;
 var breathLoopActive = false;
@@ -88,6 +206,95 @@ var allLoopsOn = false;
 var droneGainNode = null;
 var tension = 0;
 
+var currentAtmosphere = null;
+var currentAtmosphereId = null;
+var spatialSoundId = null;
+var orbitInterval = null;
+var spatialX = 0, spatialZ = 0;
+
+// ========================================================================
+// SOUND DEFINITIONS
+// ========================================================================
+var STINGERS = [
+  { key: 'sliced',           label: '01 Sliced',            file: 'stinger-01-sliced' },
+  { key: 'evilMirror',       label: '02 Evil Mirror',       file: 'stinger-02-evil-mirror' },
+  { key: 'dontTurnAround',   label: '03 Don\'t Turn Around',file: 'stinger-03-dont-turn-around' },
+  { key: 'perimeterBreach',  label: '04 Perimeter Breach',  file: 'stinger-04-perimeter-breach' },
+  { key: 'harbingersOfDoom', label: '05 Harbingers of Doom',file: 'stinger-05-harbingers-of-doom' },
+  { key: 'creakingNoise',    label: '06 Creaking Noise',    file: 'stinger-06-creaking-noise' },
+  { key: 'justTheCat',       label: '07 Just the Cat',      file: 'stinger-07-just-the-cat' },
+  { key: 'innocentChildren', label: '08 Innocent Children', file: 'stinger-08-innocent-children' },
+  { key: 'emptyHallways',    label: '09 Empty Hallways',    file: 'stinger-09-empty-hallways' },
+  { key: 'kitchenAttack',    label: '10 Kitchen Attack',    file: 'stinger-10-kitchen-attack' },
+  { key: 'hardCollision',    label: '11 Hard Collision',    file: 'stinger-11-hard-collision' },
+  { key: 'vampireNest',      label: '12 Vampire Nest',      file: 'stinger-12-vampire-nest' },
+  { key: 'killingMachine',   label: '13 Killing Machine',   file: 'stinger-13-killing-machine' },
+  { key: 'cruelFate',        label: '14 Cruel Fate',        file: 'stinger-14-cruel-fate' },
+  { key: 'rituals',          label: '15 Rituals',           file: 'stinger-15-rituals' },
+  { key: 'memoryFlash',      label: '16 Memory Flash',      file: 'stinger-16-memory-flash' }
+];
+
+var BUILDUPS = [
+  { key: 'hairsStandingUp',   label: '01 Hairs Standing Up',     file: 'buildup-01-hairs-standing-up' },
+  { key: 'guysNotAlone',      label: '02 Guys We\'re Not Alone', file: 'buildup-02-guys-we-are-not-alone' },
+  { key: 'repressedMemories',  label: '03 Repressed Memories',   file: 'buildup-03-repressed-memories' },
+  { key: 'ghostInMachine',    label: '04 Ghost in the Machine',  file: 'buildup-04-ghost-in-the-machine' },
+  { key: 'creepingDread',     label: '05 Creeping Dread',        file: 'buildup-05-creeping-dread' },
+  { key: 'imaginaryFriend',   label: '06 Imaginary Friend',      file: 'buildup-06-imaginary-friend' },
+  { key: 'wakingFromNightmare',label: '07 Waking From Nightmare',file: 'buildup-07-waking-from-nightmare' },
+  { key: 'haveTellYou',       label: '08 I Have To Tell You',    file: 'buildup-08-i-have-to-tell-you-something' },
+  { key: 'malevolentSpirit',   label: '09 Malevolent Spirit',    file: 'buildup-09-malevolent-spirit' },
+  { key: 'witchesCoven',      label: '10 Witches\' Coven',       file: 'buildup-10-witches-coven' },
+  { key: 'darkCorridor',      label: '11 Through Dark Corridor', file: 'buildup-11-through-the-dark-corridor' },
+  { key: 'destinyCalling',    label: '12 Destiny Calling',       file: 'buildup-12-destiny-calling' },
+  { key: 'endOfDays',         label: '13 End of Days',           file: 'buildup-13-end-of-days' },
+  { key: 'noItCantBe',        label: '14 No It Can\'t Be',       file: 'buildup-14-no-it-cant-be' },
+  { key: 'run',               label: '15 Run',                   file: 'buildup-15-run' },
+  { key: 'whatTwistedMind',   label: '16 What Twisted Mind',     file: 'buildup-16-what-twisted-mind' }
+];
+
+var ATMOSPHERES = [
+  { key: 'enteringTheHive',   label: '01 Entering the Hive',        file: 'atmo-01-entering-the-hive' },
+  { key: 'somethingWrong',    label: '02 Something Doesn\'t Feel Right', file: 'atmo-02-something-doesnt-feel-right' },
+  { key: 'pureEvil',          label: '03 Presence of Pure Evil',     file: 'atmo-03-presence-of-pure-evil' },
+  { key: 'afterHumanity',     label: '04 After Humanity Lost',      file: 'atmo-04-after-humanity-lost-the-war' },
+  { key: 'fearOfUnknown',     label: '05 Fear of the Unknown',      file: 'atmo-05-fear-of-the-unknown' },
+  { key: 'abyssStaresBack',   label: '06 The Abyss Stares Back',    file: 'atmo-06-the-abyss-stares-back' },
+  { key: 'theLair',           label: '07 The Lair',                  file: 'atmo-07-the-lair' },
+  { key: 'realmOfShadows',    label: '08 Realm of Shadows',         file: 'atmo-08-realm-of-shadows' },
+  { key: 'forbiddenFruit',    label: '09 Forbidden Fruit',          file: 'atmo-09-forbidden-fruit' },
+  { key: 'curiosityKilled',   label: '10 Curiosity Killed',         file: 'atmo-10-curiosity-killed-the-frat-boy' },
+  { key: 'tiptoeing',         label: '11 Tiptoeing',                file: 'atmo-11-tiptoeing' },
+  { key: 'mrNefarious',       label: '12 Mr. Nefarious',            file: 'atmo-12-mr-nefarious' },
+  { key: 'feverdream',        label: '13 Feverdream',               file: 'atmo-13-feverdream' },
+  { key: 'infernalMachinery', label: '14 Infernal Machinery',       file: 'atmo-14-infernal-machinery' },
+  { key: 'impending',         label: '15 Impending',                file: 'atmo-15-impending' },
+  { key: 'collisionCourse',   label: '16 Collision Course',         file: 'atmo-16-collision-course' }
+];
+
+var EXTRAS = [
+  { key: 'violaDrone',       label: 'Viola Drone',          file: 'viola-drone',         loop: true,  note: 'Act I Sec IV-V: Dr. Venn\'s performance' },
+  { key: 'radioStatic',      label: 'Radio Static',         file: 'radio-static',        loop: false, note: 'Act I Sec I-II: car radio distortion' },
+  { key: 'crowdMurmur',      label: 'Crowd Murmur',         file: 'crowd-murmur',        loop: false, note: 'Act II Sec XI: seven billion minds' },
+  { key: 'voidWind',         label: 'Void Wind',            file: 'void-wind',           loop: true,  note: 'Act I epilogue, Act III Sec XIV' },
+  { key: 'clockTicking',     label: 'Clock Ticking',        file: 'clock-ticking',       loop: false, note: 'Act I Sec V: countdown' },
+  { key: 'crystalResonance', label: 'Crystal Resonance',    file: 'crystal-resonance',   loop: false, note: 'Act II Sec VIII-IX: Akari the Resonator' },
+  { key: 'heartbeatStopping',label: 'Heartbeat Stopping',   file: 'heartbeat-stopping',  loop: false, note: 'Act III Sec XXX: final dying fade' },
+  { key: 'childLullaby',     label: 'Child Lullaby',        file: 'child-lullaby',       loop: false, note: 'Act II Sec VIII: The Lullaby' },
+  { key: 'metalGroaning',    label: 'Metal Groaning',       file: 'metal-groaning',      loop: false, note: 'Act III Sec XV-XVI: Scavengers\' vessel' },
+  { key: 'reversedSpeech',   label: 'Reversed Speech',      file: 'reversed-speech',     loop: false, note: 'Any act: ambient horror texture' }
+];
+
+// Howl instances keyed by their key name
+var howls = { stingers: {}, buildups: {}, atmospheres: {}, extras: {} };
+var loadCounts = { stingers: 0, buildups: 0, atmospheres: 0, extras: 0 };
+
+// Spatial test Howl
+var spatialHowl = null;
+
+// ========================================================================
+// LOGGING
+// ========================================================================
 function log(msg) {
   document.getElementById('status').textContent = msg;
 }
@@ -96,13 +303,23 @@ function logEvent(msg) {
   var el = document.getElementById('event-log');
   var time = new Date().toLocaleTimeString();
   el.innerHTML = '<div>[' + time + '] ' + msg + '</div>' + el.innerHTML;
-  if (el.children.length > 50) el.removeChild(el.lastChild);
+  if (el.children.length > 80) el.removeChild(el.lastChild);
 }
 
+// ========================================================================
+// INIT
+// ========================================================================
 function initAudio() {
   if (ctx) { log('Already initialized'); return; }
-  ctx = new (window.AudioContext || window.webkitAudioContext)();
 
+  // Let Howler create the AudioContext, then steal it
+  if (typeof Howler !== 'undefined' && Howler.ctx) {
+    ctx = Howler.ctx;
+  } else {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  // Limiter
   limiter = ctx.createDynamicsCompressor();
   limiter.threshold.value = -6;
   limiter.knee.value = 3;
@@ -111,9 +328,21 @@ function initAudio() {
   limiter.release.value = 0.1;
   limiter.connect(ctx.destination);
 
+  // Master gain
   master = ctx.createGain();
   master.gain.value = 0.30;
   master.connect(limiter);
+
+  // Sample bus — Howler output routes through here
+  sampleBus = ctx.createGain();
+  sampleBus.gain.value = 0.60;
+  sampleBus.connect(master);
+
+  // Reroute Howler's master through our limiter chain
+  if (typeof Howler !== 'undefined' && Howler.masterGain) {
+    Howler.masterGain.disconnect();
+    Howler.masterGain.connect(sampleBus);
+  }
 
   // Pre-generate noise buffers
   var noiseLen = Math.floor(ctx.sampleRate * 4);
@@ -126,42 +355,146 @@ function initAudio() {
   var lnd = window._longNoiseBuf.getChannelData(0);
   for (var i = 0; i < longLen; i++) lnd[i] = Math.random() * 2 - 1;
 
-  // Reverb (matches horror-effects.js exactly)
+  // Reverb
   window._reverbNode = ctx.createGain();
   window._reverbNode.gain.value = 0.25;
-
   var delayL = ctx.createDelay(); delayL.delayTime.value = 0.55;
   var delayR = ctx.createDelay(); delayR.delayTime.value = 0.79;
   var fbL = ctx.createGain(); fbL.gain.value = 0.30;
   var fbR = ctx.createGain(); fbR.gain.value = 0.25;
-
-  var damp = ctx.createBiquadFilter();
-  damp.type = 'lowpass'; damp.frequency.value = 2500;
-  var hpf = ctx.createBiquadFilter();
-  hpf.type = 'highpass'; hpf.frequency.value = 200;
-
+  var damp = ctx.createBiquadFilter(); damp.type = 'lowpass'; damp.frequency.value = 2500;
+  var hpf = ctx.createBiquadFilter(); hpf.type = 'highpass'; hpf.frequency.value = 200;
   window._reverbNode.connect(hpf);
   hpf.connect(damp);
-  damp.connect(delayL);
-  damp.connect(delayR);
+  damp.connect(delayL); damp.connect(delayR);
   delayL.connect(fbL); fbL.connect(delayR);
   delayR.connect(fbR); fbR.connect(delayL);
-
   var panL = ctx.createStereoPanner(); panL.pan.value = -0.8;
   var panR = ctx.createStereoPanner(); panR.pan.value = 0.8;
   delayL.connect(panL); panL.connect(master);
   delayR.connect(panR); panR.connect(master);
 
   if (ctx.state === 'suspended') ctx.resume();
-  log('Audio initialized. Toggle background loops to replicate live page.');
+
+  // Load all Howler sounds
+  loadAllSamples();
+
+  log('Audio initialized. Howler routed through limiter chain. Loading samples...');
+  logEvent('INIT — AudioContext: ' + ctx.sampleRate + 'Hz');
+}
+
+// ========================================================================
+// HOWLER SAMPLE LOADING
+// ========================================================================
+function loadAllSamples() {
+  STINGERS.forEach(function(s) {
+    howls.stingers[s.key] = new Howl({
+      src: ['audio-compressed/stingers/' + s.file + '.ogg', 'audio-compressed/stingers/' + s.file + '.mp3'],
+      volume: 1.0,
+      preload: true,
+      onload: function() { bumpLoadCount('stingers', s.key); },
+      onloaderror: function(id, err) { logEvent('LOAD ERROR: ' + s.key + ' — ' + err); }
+    });
+  });
+
+  BUILDUPS.forEach(function(s) {
+    howls.buildups[s.key] = new Howl({
+      src: ['audio-compressed/buildups/' + s.file + '.ogg', 'audio-compressed/buildups/' + s.file + '.mp3'],
+      volume: 1.0,
+      preload: true,
+      onload: function() { bumpLoadCount('buildups', s.key); },
+      onloaderror: function(id, err) { logEvent('LOAD ERROR: ' + s.key + ' — ' + err); }
+    });
+  });
+
+  ATMOSPHERES.forEach(function(s) {
+    howls.atmospheres[s.key] = new Howl({
+      src: ['audio-compressed/atmospheres/' + s.file + '.ogg', 'audio-compressed/atmospheres/' + s.file + '.mp3'],
+      volume: 1.0,
+      loop: true,
+      preload: true,
+      onload: function() { bumpLoadCount('atmospheres', s.key); },
+      onloaderror: function(id, err) { logEvent('LOAD ERROR: ' + s.key + ' — ' + err); }
+    });
+  });
+
+  EXTRAS.forEach(function(s) {
+    howls.extras[s.key] = new Howl({
+      src: ['audio-compressed/extras/' + s.file + '.ogg', 'audio-compressed/extras/' + s.file + '.mp3'],
+      volume: 1.0,
+      loop: !!s.loop,
+      preload: true,
+      onload: function() { bumpLoadCount('extras', s.key); },
+      onloaderror: function(id, err) { logEvent('LOAD ERROR: ' + s.key + ' — ' + err); }
+    });
+  });
+
+  // Spatial test howl (reuses stinger-04)
+  spatialHowl = new Howl({
+    src: ['audio-compressed/stingers/stinger-04-perimeter-breach.ogg', 'audio-compressed/stingers/stinger-04-perimeter-breach.mp3'],
+    volume: 0.8
+  });
+}
+
+function bumpLoadCount(category, key) {
+  loadCounts[category]++;
+  var totals = { stingers: 16, buildups: 16, atmospheres: 16, extras: 10 };
+  var total = totals[category] || 0;
+  var el = document.getElementById(category + '-status');
+  if (el) {
+    if (loadCounts[category] >= total) {
+      el.textContent = 'all loaded';
+      el.className = 'load-status loaded';
+      logEvent(category + ': all ' + total + ' loaded');
+    } else {
+      el.textContent = loadCounts[category] + '/' + total;
+    }
+  }
+  // Update load-info
+  var totalLoaded = loadCounts.stingers + loadCounts.buildups + loadCounts.atmospheres + loadCounts.extras;
+  document.getElementById('load-info').textContent =
+    'Howler: ' + totalLoaded + '/58 loaded | AudioContext: ' + (ctx ? ctx.state : 'none');
+}
+
+// ========================================================================
+// MASTER CONTROLS
+// ========================================================================
+function setMasterVol(val) {
+  var v = val / 100;
+  document.getElementById('master-vol-val').textContent = v.toFixed(2);
+  if (master) master.gain.setValueAtTime(v, ctx.currentTime);
+}
+
+function setSampleVol(val) {
+  var v = val / 100;
+  document.getElementById('sample-vol-val').textContent = v.toFixed(2);
+  if (sampleBus) sampleBus.gain.setValueAtTime(v, ctx.currentTime);
+}
+
+function getRate() {
+  return parseInt(document.getElementById('global-rate').value, 10) / 100;
+}
+
+function stopAllSamples() {
+  Howler.stop();
+  currentAtmosphere = null;
+  currentAtmosphereId = null;
+  updateAtmosphereButtons();
+  logEvent('All samples stopped');
 }
 
 function killAll() {
   if (!ctx) return;
+  // Stop synth nodes
   activeNodes.forEach(function(n) { try { n.stop(0); } catch(e) {} });
   activeNodes = [];
-  master.gain.cancelScheduledValues(ctx.currentTime);
-  master.gain.setValueAtTime(0, ctx.currentTime);
+  if (master) {
+    master.gain.cancelScheduledValues(ctx.currentTime);
+    master.gain.setValueAtTime(0, ctx.currentTime);
+  }
+
+  // Stop all Howler
+  Howler.stop();
 
   droneActive = false;
   whisperLoopActive = false;
@@ -171,16 +504,174 @@ function killAll() {
   allLoopsOn = false;
   droneGainNode = null;
   tension = 0;
+  currentAtmosphere = null;
+  currentAtmosphereId = null;
 
   updateButtons();
+  updateAtmosphereButtons();
 
   setTimeout(function() {
-    if (master) master.gain.setValueAtTime(0.30, ctx.currentTime);
+    if (master) master.gain.setValueAtTime(parseFloat(document.getElementById('master-vol-val').textContent), ctx.currentTime);
   }, 100);
   log('ALL SOUND KILLED');
   logEvent('KILL ALL');
 }
 
+// ========================================================================
+// SAMPLE PLAYBACK HELPERS
+// ========================================================================
+function playStinger(key, opts) {
+  opts = opts || {};
+  var howl = howls.stingers[key];
+  if (!howl) { logEvent('Stinger not found: ' + key); return; }
+  var id = howl.play();
+  var rate = opts.rate || getRate();
+  howl.rate(rate, id);
+  if (opts.volume !== undefined) howl.volume(opts.volume, id);
+  if (opts.fade) howl.fade(0, opts.volume || 1, opts.fade, id);
+  logEvent('▶ Stinger: ' + key + ' (rate: ' + rate.toFixed(2) + ')');
+  return id;
+}
+
+function playBuildup(key, opts) {
+  opts = opts || {};
+  var howl = howls.buildups[key];
+  if (!howl) { logEvent('Buildup not found: ' + key); return; }
+  var id = howl.play();
+  var rate = opts.rate || getRate();
+  howl.rate(rate, id);
+  if (opts.volume !== undefined) howl.volume(opts.volume, id);
+  logEvent('▶ Build-up: ' + key + ' (rate: ' + rate.toFixed(2) + ')');
+  return id;
+}
+
+function playAtmosphere(key, opts) {
+  opts = opts || {};
+  var howl = howls.atmospheres[key];
+  if (!howl) { logEvent('Atmosphere not found: ' + key); return; }
+  var fadeDur = opts.fadeDur || 3000;
+
+  // If same atmosphere, just toggle off
+  if (currentAtmosphere === key) {
+    howl.fade(howl.volume(), 0, fadeDur, currentAtmosphereId);
+    howl.once('fade', function() { howl.stop(currentAtmosphereId); }, currentAtmosphereId);
+    logEvent('⏹ Atmosphere: ' + key + ' (fade out ' + fadeDur + 'ms)');
+    currentAtmosphere = null;
+    currentAtmosphereId = null;
+    updateAtmosphereButtons();
+    return;
+  }
+
+  // Fade out current
+  if (currentAtmosphere && howls.atmospheres[currentAtmosphere]) {
+    var old = howls.atmospheres[currentAtmosphere];
+    var oldId = currentAtmosphereId;
+    old.fade(old.volume(), 0, fadeDur, oldId);
+    old.once('fade', function() { old.stop(oldId); }, oldId);
+    logEvent('↔ Crossfade: ' + currentAtmosphere + ' → ' + key);
+  }
+
+  // Start new
+  var vol = opts.volume || 0.5;
+  var id = howl.play();
+  howl.volume(0, id);
+  howl.fade(0, vol, fadeDur, id);
+  var rate = opts.rate || 1.0;
+  howl.rate(rate, id);
+  currentAtmosphere = key;
+  currentAtmosphereId = id;
+  updateAtmosphereButtons();
+  logEvent('▶ Atmosphere: ' + key + ' (vol: ' + vol + ', rate: ' + rate.toFixed(2) + ')');
+  return id;
+}
+
+// ========================================================================
+// BUILD GRIDS
+// ========================================================================
+function buildGrids() {
+  var stGrid = document.getElementById('stingers-grid');
+  STINGERS.forEach(function(s) {
+    var btn = document.createElement('button');
+    btn.textContent = s.label;
+    btn.id = 'btn-st-' + s.key;
+    btn.onclick = function() { playStinger(s.key); };
+    stGrid.appendChild(btn);
+  });
+
+  var buGrid = document.getElementById('buildups-grid');
+  BUILDUPS.forEach(function(s) {
+    var btn = document.createElement('button');
+    btn.textContent = s.label;
+    btn.id = 'btn-bu-' + s.key;
+    btn.onclick = function() {
+      var howl = howls.buildups[s.key];
+      if (howl && howl.playing()) {
+        howl.stop();
+        btn.classList.remove('sample-playing');
+        logEvent('⏹ Build-up stopped: ' + s.key);
+      } else {
+        playBuildup(s.key);
+        btn.classList.add('sample-playing');
+        howl.once('end', function() { btn.classList.remove('sample-playing'); });
+      }
+    };
+    buGrid.appendChild(btn);
+  });
+
+  var atGrid = document.getElementById('atmospheres-grid');
+  ATMOSPHERES.forEach(function(s) {
+    var btn = document.createElement('button');
+    btn.textContent = s.label;
+    btn.id = 'btn-at-' + s.key;
+    btn.onclick = function() { playAtmosphere(s.key); };
+    atGrid.appendChild(btn);
+  });
+
+  var exGrid = document.getElementById('extras-grid');
+  EXTRAS.forEach(function(s) {
+    var btn = document.createElement('button');
+    btn.textContent = s.label;
+    btn.title = s.note;
+    btn.id = 'btn-ex-' + s.key;
+    btn.onclick = function() {
+      var howl = howls.extras[s.key];
+      if (!howl) return;
+      if (howl.playing()) {
+        howl.fade(howl.volume(), 0, 500);
+        howl.once('fade', function() { howl.stop(); });
+        btn.classList.remove('sample-playing');
+        logEvent('⏹ Extra stopped: ' + s.key);
+      } else {
+        var id = howl.play();
+        var rate = s.loop ? 1.0 : getRate();
+        howl.rate(rate, id);
+        btn.classList.add('sample-playing');
+        logEvent('▶ Extra: ' + s.key + (s.loop ? ' (loop)' : '') + ' — ' + s.note);
+        if (!s.loop) {
+          howl.once('end', function() { btn.classList.remove('sample-playing'); });
+        }
+      }
+    };
+    exGrid.appendChild(btn);
+  });
+}
+
+function updateAtmosphereButtons() {
+  ATMOSPHERES.forEach(function(s) {
+    var btn = document.getElementById('btn-at-' + s.key);
+    if (btn) {
+      if (currentAtmosphere === s.key) {
+        btn.classList.add('active-loop');
+      } else {
+        btn.classList.remove('active-loop');
+      }
+    }
+  });
+}
+
+// ========================================================================
+// SYNTH: BACKGROUND LOOPS (from existing audio-test.html)
+// ========================================================================
 function updateButtons() {
   setBtnState('btn-drone', droneActive);
   setBtnState('btn-whisper-loop', whisperLoopActive);
@@ -192,21 +683,17 @@ function updateButtons() {
 
 function setBtnState(id, on) {
   var btn = document.getElementById(id);
+  if (!btn) return;
   var label = btn.textContent.split(':')[0];
   btn.textContent = label + ': ' + (on ? 'ON' : 'OFF');
   if (on) btn.classList.add('active-loop');
   else btn.classList.remove('active-loop');
 }
 
-// ===== BACKGROUND LOOPS =====
-
 function toggleDrone() {
   if (!ctx) { log('Init first'); return; }
   if (droneActive) { killAll(); return; }
-  droneActive = true;
-  updateButtons();
-  startDrone();
-  logEvent('Drone ON');
+  droneActive = true; updateButtons(); startDrone(); logEvent('Drone ON');
 }
 
 function startDrone() {
@@ -226,13 +713,9 @@ function startDrone() {
   createDroneLayer(15523, 'sine', 0.008, 0.012, 0.08);
 
   // Wind noise
-  var noise = ctx.createBufferSource();
-  noise.buffer = window._noiseBuf;
-  noise.loop = true;
-  var bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass'; bp.frequency.value = 300; bp.Q.value = 0.3;
-  var noiseLfo = ctx.createOscillator();
-  noiseLfo.type = 'sine'; noiseLfo.frequency.value = 0.015;
+  var noise = ctx.createBufferSource(); noise.buffer = window._noiseBuf; noise.loop = true;
+  var bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 300; bp.Q.value = 0.3;
+  var noiseLfo = ctx.createOscillator(); noiseLfo.type = 'sine'; noiseLfo.frequency.value = 0.015;
   var noiseLfoAmt = ctx.createGain(); noiseLfoAmt.gain.value = 30;
   noiseLfo.connect(noiseLfoAmt); noiseLfoAmt.connect(bp.frequency);
   noiseLfo.start(); activeNodes.push(noiseLfo);
@@ -250,7 +733,6 @@ function startDrone() {
   var panR = ctx.createStereoPanner(); panR.pan.value = 1;
   oscR.connect(panR); panR.connect(binGain); oscR.start(); activeNodes.push(oscR);
 
-  // Tension update loop (same as horror-effects.js)
   updateTensionLoop();
 }
 
@@ -278,100 +760,61 @@ function updateTensionLoop() {
   setTimeout(updateTensionLoop, 500);
 }
 
-// --- Whisper Loop ---
 function toggleWhisperLoop() {
   if (!ctx) { log('Init first'); return; }
-  whisperLoopActive = !whisperLoopActive;
-  updateButtons();
+  whisperLoopActive = !whisperLoopActive; updateButtons();
   if (whisperLoopActive) scheduleWhisperLoop();
   logEvent('Whisper Loop ' + (whisperLoopActive ? 'ON' : 'OFF'));
 }
-
 function scheduleWhisperLoop() {
   if (!whisperLoopActive) return;
-  var delay = 25000 + Math.random() * 35000; // 25-60s (same as CONFIG)
-  setTimeout(function() {
-    if (!whisperLoopActive) return;
-    testWhisper();
-    logEvent('Auto whisper fired');
-    scheduleWhisperLoop();
-  }, delay);
+  setTimeout(function() { if (!whisperLoopActive) return; testWhisper(); logEvent('Auto whisper'); scheduleWhisperLoop(); }, 25000 + Math.random() * 35000);
 }
 
-// --- Breath Loop ---
 function toggleBreathLoop() {
   if (!ctx) { log('Init first'); return; }
-  breathLoopActive = !breathLoopActive;
-  updateButtons();
+  breathLoopActive = !breathLoopActive; updateButtons();
   if (breathLoopActive) scheduleBreathLoop();
   logEvent('Breath Loop ' + (breathLoopActive ? 'ON' : 'OFF'));
 }
-
 function scheduleBreathLoop() {
   if (!breathLoopActive) return;
-  var delay = 15000 + Math.random() * 25000; // 15-40s (same as horror-effects.js)
-  setTimeout(function() {
-    if (!breathLoopActive) return;
-    testBreath();
-    logEvent('Auto breath fired');
-    scheduleBreathLoop();
-  }, delay);
+  setTimeout(function() { if (!breathLoopActive) return; testBreath(); logEvent('Auto breath'); scheduleBreathLoop(); }, 15000 + Math.random() * 25000);
 }
 
-// --- Ambient Event Loop ---
 function toggleAmbientLoop() {
   if (!ctx) { log('Init first'); return; }
-  ambientLoopActive = !ambientLoopActive;
-  updateButtons();
+  ambientLoopActive = !ambientLoopActive; updateButtons();
   if (ambientLoopActive) scheduleAmbientLoop();
   logEvent('Ambient Loop ' + (ambientLoopActive ? 'ON' : 'OFF'));
 }
-
 function scheduleAmbientLoop() {
   if (!ambientLoopActive) return;
-  var delay = 30000 + Math.random() * 50000; // 30-80s (same as CONFIG)
   setTimeout(function() {
     if (!ambientLoopActive) return;
     var r = Math.random();
-    if (r < 0.40) {
-      logEvent('Ambient: nothing (40% chance)');
-    } else if (r < 0.52) {
-      logEvent('Ambient: whisper');
-      testWhisper();
-    } else if (r < 0.64) {
-      logEvent('Ambient: metal scrape');
-      testMetalScrape();
-    } else if (r < 0.76) {
-      logEvent('Ambient: breath');
-      testBreath();
-    } else if (r < 0.88) {
-      logEvent('Ambient: dissonant chord');
-      testDissonantChord();
-    } else {
-      logEvent('Ambient: reverse swell');
-      testReverseSwell();
-    }
+    if (r < 0.40) { logEvent('Ambient: nothing'); }
+    else if (r < 0.52) { logEvent('Ambient: whisper'); testWhisper(); }
+    else if (r < 0.64) { logEvent('Ambient: metal scrape'); testMetalScrape(); }
+    else if (r < 0.76) { logEvent('Ambient: breath'); testBreath(); }
+    else if (r < 0.88) { logEvent('Ambient: dissonant chord'); testDissonantChord(); }
+    else { logEvent('Ambient: reverse swell'); testReverseSwell(); }
     scheduleAmbientLoop();
-  }, delay);
+  }, 30000 + Math.random() * 50000);
 }
 
-// --- Tension Ramp (simulates scrolling down) ---
 function toggleTension() {
   if (!ctx) { log('Init first'); return; }
-  tensionActive = !tensionActive;
-  updateButtons();
+  tensionActive = !tensionActive; updateButtons();
   if (tensionActive) rampTension();
   logEvent('Tension Ramp ' + (tensionActive ? 'ON' : 'OFF'));
 }
-
 function rampTension() {
   if (!tensionActive) { tension = 0; return; }
   tension = Math.min(tension + 0.02, 1.0);
-  logEvent('Tension: ' + tension.toFixed(2));
   setTimeout(rampTension, 1000);
 }
 
-// --- All Loops ---
 function toggleAllLoops() {
   if (!ctx) { log('Init first'); return; }
   allLoopsOn = !allLoopsOn;
@@ -381,113 +824,70 @@ function toggleAllLoops() {
     if (!breathLoopActive) toggleBreathLoop();
     if (!ambientLoopActive) toggleAmbientLoop();
     if (!tensionActive) toggleTension();
-  } else {
-    killAll();
-  }
+  } else { killAll(); }
   updateButtons();
   logEvent('ALL LOOPS ' + (allLoopsOn ? 'ON' : 'OFF'));
 }
 
-// ===== INDIVIDUAL SOUNDS =====
-
+// ========================================================================
+// SYNTH: ONE-SHOTS (from existing audio-test.html)
+// ========================================================================
 function testWhisper() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Whisper');
-  logEvent('Whisper');
-  var dur = 2.0 + Math.random() * 3.5;
-  var now = ctx.currentTime;
-
-  var src = ctx.createBufferSource();
-  src.buffer = window._longNoiseBuf;
-
-  var throatDelay = ctx.createDelay();
-  throatDelay.delayTime.value = 0.002 + Math.random() * 0.003;
+  log('Playing: Whisper'); logEvent('Synth Whisper');
+  var dur = 2.0 + Math.random() * 3.5; var now = ctx.currentTime;
+  var src = ctx.createBufferSource(); src.buffer = window._longNoiseBuf;
+  var throatDelay = ctx.createDelay(); throatDelay.delayTime.value = 0.002 + Math.random() * 0.003;
   var throatFb = ctx.createGain(); throatFb.gain.value = 0.45;
-  throatDelay.connect(throatFb); throatFb.connect(throatDelay);
-  src.connect(throatDelay);
-
+  throatDelay.connect(throatFb); throatFb.connect(throatDelay); src.connect(throatDelay);
   var filt1 = ctx.createBiquadFilter(); filt1.type = 'bandpass'; filt1.frequency.value = 600 + Math.random() * 800; filt1.Q.value = 2;
   var filt2 = ctx.createBiquadFilter(); filt2.type = 'highpass'; filt2.frequency.value = 2000;
-
   var g = ctx.createGain();
-  g.gain.setValueAtTime(0, now);
-  g.gain.linearRampToValueAtTime(0.10, now + 0.2);
-  g.gain.setValueAtTime(0.10, now + dur * 0.7);
-  g.gain.linearRampToValueAtTime(0, now + dur);
-
-  var pan = ctx.createStereoPanner();
-  pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
-
+  g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.10, now + 0.2);
+  g.gain.setValueAtTime(0.10, now + dur * 0.7); g.gain.linearRampToValueAtTime(0, now + dur);
+  var pan = ctx.createStereoPanner(); pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
   throatDelay.connect(filt1); filt1.connect(filt2); filt2.connect(g);
   g.connect(pan); pan.connect(master); pan.connect(window._reverbNode);
-  src.start(now); src.stop(now + dur);
-  activeNodes.push(src);
+  src.start(now); src.stop(now + dur); activeNodes.push(src);
 }
 
 function testBreath() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Breath');
-  logEvent('Breath');
-  var dur = 2.5 + Math.random() * 2;
-  var now = ctx.currentTime;
-
-  var src = ctx.createBufferSource();
-  src.buffer = window._longNoiseBuf;
-
-  var throatDelay = ctx.createDelay();
-  throatDelay.delayTime.value = 0.005;
+  log('Playing: Breath'); logEvent('Synth Breath');
+  var dur = 2.5 + Math.random() * 2; var now = ctx.currentTime;
+  var src = ctx.createBufferSource(); src.buffer = window._longNoiseBuf;
+  var throatDelay = ctx.createDelay(); throatDelay.delayTime.value = 0.005;
   var throatFb = ctx.createGain(); throatFb.gain.value = 0.40;
-  throatDelay.connect(throatFb); throatFb.connect(throatDelay);
-  src.connect(throatDelay);
-
+  throatDelay.connect(throatFb); throatFb.connect(throatDelay); src.connect(throatDelay);
   var f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 350; f1.Q.value = 1.2;
   var f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 1100; f2.Q.value = 2;
-
   var g = ctx.createGain();
-  g.gain.setValueAtTime(0, now);
-  g.gain.linearRampToValueAtTime(0.07, now + dur * 0.3);
+  g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.07, now + dur * 0.3);
   g.gain.linearRampToValueAtTime(0.07 * 0.15, now + dur * 0.45);
-  g.gain.linearRampToValueAtTime(0.07 * 0.7, now + dur * 0.75);
-  g.gain.linearRampToValueAtTime(0, now + dur);
-
-  var pan = ctx.createStereoPanner();
-  pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
-
-  throatDelay.connect(f1); throatDelay.connect(f2);
-  f1.connect(g); f2.connect(g);
+  g.gain.linearRampToValueAtTime(0.07 * 0.7, now + dur * 0.75); g.gain.linearRampToValueAtTime(0, now + dur);
+  var pan = ctx.createStereoPanner(); pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
+  throatDelay.connect(f1); throatDelay.connect(f2); f1.connect(g); f2.connect(g);
   g.connect(pan); pan.connect(master); pan.connect(window._reverbNode);
-  src.start(now); src.stop(now + dur);
-  activeNodes.push(src);
+  src.start(now); src.stop(now + dur); activeNodes.push(src);
 }
 
 function testHeartbeat() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Heartbeat');
-  logEvent('Heartbeat');
-  var beats = 6;
-  var now = ctx.currentTime;
-
+  log('Playing: Heartbeat'); logEvent('Synth Heartbeat');
+  var beats = 6; var now = ctx.currentTime;
   for (var i = 0; i < beats; i++) {
     var t = now + i * 0.75;
     var o1 = ctx.createOscillator(); o1.type = 'sine';
-    o1.frequency.setValueAtTime(80, t);
-    o1.frequency.exponentialRampToValueAtTime(20, t + 0.15);
-    var g1 = ctx.createGain();
-    g1.gain.setValueAtTime(0, t);
-    g1.gain.linearRampToValueAtTime(0.18, t + 0.02);
-    g1.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-    var shaper = ctx.createWaveShaper();
-    shaper.curve = new Float32Array([-0.8, 0, 0.8]);
+    o1.frequency.setValueAtTime(80, t); o1.frequency.exponentialRampToValueAtTime(20, t + 0.15);
+    var g1 = ctx.createGain(); g1.gain.setValueAtTime(0, t);
+    g1.gain.linearRampToValueAtTime(0.18, t + 0.02); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    var shaper = ctx.createWaveShaper(); shaper.curve = new Float32Array([-0.8, 0, 0.8]);
     o1.connect(shaper); shaper.connect(g1); g1.connect(master);
     o1.start(t); o1.stop(t + 0.35); activeNodes.push(o1);
-
     var o2 = ctx.createOscillator(); o2.type = 'sine';
-    o2.frequency.setValueAtTime(60, t + 0.2);
-    o2.frequency.exponentialRampToValueAtTime(15, t + 0.4);
-    var g2 = ctx.createGain();
-    g2.gain.setValueAtTime(0, t + 0.18);
-    g2.gain.linearRampToValueAtTime(0.18 * 0.8, t + 0.22);
-    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    o2.frequency.setValueAtTime(60, t + 0.2); o2.frequency.exponentialRampToValueAtTime(15, t + 0.4);
+    var g2 = ctx.createGain(); g2.gain.setValueAtTime(0, t + 0.18);
+    g2.gain.linearRampToValueAtTime(0.18 * 0.8, t + 0.22); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
     o2.connect(g2); g2.connect(master);
     o2.start(t + 0.18); o2.stop(t + 0.55); activeNodes.push(o2);
   }
@@ -495,131 +895,76 @@ function testHeartbeat() {
 
 function testSharpTone() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Sharp Stinger');
-  logEvent('Sharp Stinger');
+  log('Playing: Sharp Stinger'); logEvent('Synth Sharp Stinger');
   var now = ctx.currentTime; var dur = 0.8;
-
   var carrier = ctx.createOscillator(); carrier.type = 'triangle';
   carrier.frequency.value = 800 + Math.random() * 400;
   var modulator = ctx.createOscillator(); modulator.type = 'sine';
   modulator.frequency.value = carrier.frequency.value * (1.5 + Math.random() * 0.5);
-  var modGain = ctx.createGain();
-  modGain.gain.setValueAtTime(150, now);
-  modGain.gain.exponentialRampToValueAtTime(5, now + dur);
+  var modGain = ctx.createGain(); modGain.gain.setValueAtTime(150, now); modGain.gain.exponentialRampToValueAtTime(5, now + dur);
   modulator.connect(modGain); modGain.connect(carrier.frequency);
-
   var filter = ctx.createBiquadFilter(); filter.type = 'bandpass';
-  filter.frequency.setValueAtTime(2500, now);
-  filter.frequency.exponentialRampToValueAtTime(500, now + dur);
-  filter.Q.value = 1.5;
-
-  var g = ctx.createGain();
-  g.gain.setValueAtTime(0, now);
-  g.gain.linearRampToValueAtTime(0.15, now + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
+  filter.frequency.setValueAtTime(2500, now); filter.frequency.exponentialRampToValueAtTime(500, now + dur); filter.Q.value = 1.5;
+  var g = ctx.createGain(); g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.15, now + 0.02); g.gain.exponentialRampToValueAtTime(0.001, now + dur);
   carrier.connect(filter); filter.connect(g); g.connect(master);
-  carrier.start(now); modulator.start(now);
-  carrier.stop(now + dur); modulator.stop(now + dur);
+  carrier.start(now); modulator.start(now); carrier.stop(now + dur); modulator.stop(now + dur);
   activeNodes.push(carrier, modulator);
 }
 
 function testMetalScrape() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Metal Scrape');
-  logEvent('Metal Scrape');
-  var dur = 2.0 + Math.random() * 1.5;
-  var now = ctx.currentTime;
-
+  log('Playing: Metal Scrape'); logEvent('Synth Metal Scrape');
+  var dur = 2.0 + Math.random() * 1.5; var now = ctx.currentTime;
   var src = ctx.createBufferSource(); src.buffer = window._noiseBuf;
-
-  // Resonant bandpass chain — no feedback loop
   var bp1 = ctx.createBiquadFilter(); bp1.type = 'bandpass';
-  bp1.frequency.setValueAtTime(800, now);
-  bp1.frequency.exponentialRampToValueAtTime(2500, now + dur);
-  bp1.Q.value = 8;
-
+  bp1.frequency.setValueAtTime(800, now); bp1.frequency.exponentialRampToValueAtTime(2500, now + dur); bp1.Q.value = 8;
   var bp2 = ctx.createBiquadFilter(); bp2.type = 'bandpass';
-  bp2.frequency.setValueAtTime(1200, now);
-  bp2.frequency.exponentialRampToValueAtTime(3500, now + dur);
-  bp2.Q.value = 6;
-
+  bp2.frequency.setValueAtTime(1200, now); bp2.frequency.exponentialRampToValueAtTime(3500, now + dur); bp2.Q.value = 6;
   var hp = ctx.createBiquadFilter(); hp.type = 'highpass';
-  hp.frequency.setValueAtTime(400, now);
-  hp.frequency.exponentialRampToValueAtTime(1000, now + dur);
-
-  var g = ctx.createGain();
-  g.gain.setValueAtTime(0, now);
-  g.gain.linearRampToValueAtTime(0.08, now + 0.1);
-  g.gain.setValueAtTime(0.08, now + dur * 0.7);
+  hp.frequency.setValueAtTime(400, now); hp.frequency.exponentialRampToValueAtTime(1000, now + dur);
+  var g = ctx.createGain(); g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.08, now + 0.1); g.gain.setValueAtTime(0.08, now + dur * 0.7);
   g.gain.linearRampToValueAtTime(0, now + dur);
-
   var merge = ctx.createGain(); merge.gain.value = 0.7;
-  src.connect(hp);
-  hp.connect(bp1); hp.connect(bp2);
-  bp1.connect(merge); bp2.connect(merge);
-  merge.connect(g);
-
-  var pan = ctx.createStereoPanner();
-  pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
-  g.connect(pan);
-  pan.connect(master);
-  // No reverb send
+  src.connect(hp); hp.connect(bp1); hp.connect(bp2); bp1.connect(merge); bp2.connect(merge); merge.connect(g);
+  var pan = ctx.createStereoPanner(); pan.pan.setValueAtTime((Math.random() - 0.5) * 1.5, now);
+  g.connect(pan); pan.connect(master);
   src.start(now); src.stop(now + dur); activeNodes.push(src);
 }
 
 function testReverseSwell() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Reverse Swell');
-  logEvent('Reverse Swell');
-  var dur = 2.5 + Math.random() * 1.5;
-  var now = ctx.currentTime;
+  log('Playing: Reverse Swell'); logEvent('Synth Reverse Swell');
+  var dur = 2.5 + Math.random() * 1.5; var now = ctx.currentTime;
   var baseFreq = 80 + Math.random() * 40;
-
   var osc = ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.value = baseFreq;
   var mod = ctx.createOscillator(); mod.type = 'sine'; mod.frequency.value = baseFreq * 2.14;
-  var modG = ctx.createGain();
-  modG.gain.setValueAtTime(0, now);
-  modG.gain.linearRampToValueAtTime(60, now + dur - 0.1);
+  var modG = ctx.createGain(); modG.gain.setValueAtTime(0, now); modG.gain.linearRampToValueAtTime(60, now + dur - 0.1);
   mod.connect(modG); modG.connect(osc.frequency);
-
   var swellGain = ctx.createGain();
-  swellGain.gain.setValueAtTime(0.001, now);
-  swellGain.gain.exponentialRampToValueAtTime(0.10, now + dur - 0.05);
+  swellGain.gain.setValueAtTime(0.001, now); swellGain.gain.exponentialRampToValueAtTime(0.10, now + dur - 0.05);
   swellGain.gain.setValueAtTime(0, now + dur);
-
   var lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
-  lp.frequency.setValueAtTime(100, now);
-  lp.frequency.exponentialRampToValueAtTime(2500, now + dur - 0.1);
-
+  lp.frequency.setValueAtTime(100, now); lp.frequency.exponentialRampToValueAtTime(2500, now + dur - 0.1);
   osc.connect(swellGain); swellGain.connect(lp); lp.connect(master);
-  osc.start(now); mod.start(now);
-  osc.stop(now + dur); mod.stop(now + dur);
+  osc.start(now); mod.start(now); osc.stop(now + dur); mod.stop(now + dur);
   activeNodes.push(osc, mod);
 }
 
 function testImpact() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Impact');
-  logEvent('Impact');
+  log('Playing: Impact'); logEvent('Synth Impact');
   var now = ctx.currentTime;
-
   var o = ctx.createOscillator(); o.type = 'sine';
-  o.frequency.setValueAtTime(120, now);
-  o.frequency.exponentialRampToValueAtTime(10, now + 0.4);
-  var g = ctx.createGain();
-  g.gain.setValueAtTime(0, now);
-  g.gain.linearRampToValueAtTime(0.20, now + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-  var shaper = ctx.createWaveShaper();
-  shaper.curve = new Float32Array([-0.5, 0, 0.5]);
+  o.frequency.setValueAtTime(120, now); o.frequency.exponentialRampToValueAtTime(10, now + 0.4);
+  var g = ctx.createGain(); g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.20, now + 0.01); g.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+  var shaper = ctx.createWaveShaper(); shaper.curve = new Float32Array([-0.5, 0, 0.5]);
   o.connect(shaper); shaper.connect(g); g.connect(master); g.connect(window._reverbNode);
   o.start(now); o.stop(now + 1.2); activeNodes.push(o);
-
   var nSrc = ctx.createBufferSource(); nSrc.buffer = window._noiseBuf;
-  var nG = ctx.createGain();
-  nG.gain.setValueAtTime(0.12, now);
-  nG.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  var nG = ctx.createGain(); nG.gain.setValueAtTime(0.12, now); nG.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
   var nLP = ctx.createBiquadFilter(); nLP.type = 'lowpass'; nLP.frequency.value = 400;
   nSrc.connect(nLP); nLP.connect(nG); nG.connect(master); nG.connect(window._reverbNode);
   nSrc.start(now); nSrc.stop(now + 0.15); activeNodes.push(nSrc);
@@ -627,68 +972,47 @@ function testImpact() {
 
 function testRumble() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Rumble');
-  logEvent('Rumble');
+  log('Playing: Rumble'); logEvent('Synth Rumble');
   var duration = 4; var now = ctx.currentTime;
-
   var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 25;
   var lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.5;
   var lfoG = ctx.createGain(); lfoG.gain.value = 10;
   lfo.connect(lfoG); lfoG.connect(o.frequency);
   lfo.start(now); lfo.stop(now + duration); activeNodes.push(lfo);
-
   var o2 = ctx.createOscillator(); o2.type = 'triangle'; o2.frequency.value = 35;
-  var g = ctx.createGain();
-  g.gain.setValueAtTime(0, now);
+  var g = ctx.createGain(); g.gain.setValueAtTime(0, now);
   g.gain.linearRampToValueAtTime(0.12, now + duration * 0.3);
-  g.gain.setValueAtTime(0.12, now + duration * 0.7);
-  g.gain.linearRampToValueAtTime(0, now + duration);
-
+  g.gain.setValueAtTime(0.12, now + duration * 0.7); g.gain.linearRampToValueAtTime(0, now + duration);
   o.connect(g); o2.connect(g); g.connect(master); g.connect(window._reverbNode);
-  o.start(now); o2.start(now);
-  o.stop(now + duration); o2.stop(now + duration);
+  o.start(now); o2.start(now); o.stop(now + duration); o2.stop(now + duration);
   activeNodes.push(o, o2);
 }
 
 function testDissonantChord() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Dissonant Chord');
-  logEvent('Dissonant Chord');
-  var dur = 4 + Math.random() * 3;
-  var now = ctx.currentTime;
-  var base = 150 + Math.random() * 100;
-  var intervals = [1, 1.059, 1.414, 1.887];
-
+  log('Playing: Dissonant Chord'); logEvent('Synth Dissonant Chord');
+  var dur = 4 + Math.random() * 3; var now = ctx.currentTime;
+  var base = 150 + Math.random() * 100; var intervals = [1, 1.059, 1.414, 1.887];
   var chordGain = ctx.createGain();
-  chordGain.gain.setValueAtTime(0, now);
-  chordGain.gain.linearRampToValueAtTime(0.10, now + 1.2);
-  chordGain.gain.setValueAtTime(0.10, now + dur * 0.6);
-  chordGain.gain.linearRampToValueAtTime(0, now + dur);
-
+  chordGain.gain.setValueAtTime(0, now); chordGain.gain.linearRampToValueAtTime(0.10, now + 1.2);
+  chordGain.gain.setValueAtTime(0.10, now + dur * 0.6); chordGain.gain.linearRampToValueAtTime(0, now + dur);
   for (var i = 0; i < intervals.length; i++) {
-    var o = ctx.createOscillator(); o.type = 'triangle';
-    o.frequency.value = base * intervals[i];
+    var o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = base * intervals[i];
     var vib = ctx.createOscillator(); vib.type = 'sine'; vib.frequency.value = 3 + Math.random() * 2;
     var vibG = ctx.createGain(); vibG.gain.value = base * intervals[i] * 0.01;
-    vib.connect(vibG); vibG.connect(o.frequency);
-    vib.start(now); vib.stop(now + dur);
+    vib.connect(vibG); vibG.connect(o.frequency); vib.start(now); vib.stop(now + dur);
     var oG = ctx.createGain(); oG.gain.value = 0.25;
-    o.connect(oG); oG.connect(chordGain);
-    o.start(now); o.stop(now + dur);
+    o.connect(oG); oG.connect(chordGain); o.start(now); o.stop(now + dur);
     activeNodes.push(o, vib);
   }
-
   var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500;
-  var pan = ctx.createStereoPanner();
-  pan.pan.setValueAtTime((Math.random() - 0.5) * 1.2, now);
-  chordGain.connect(lp); lp.connect(pan);
-  pan.connect(master); pan.connect(window._reverbNode);
+  var pan = ctx.createStereoPanner(); pan.pan.setValueAtTime((Math.random() - 0.5) * 1.2, now);
+  chordGain.connect(lp); lp.connect(pan); pan.connect(master); pan.connect(window._reverbNode);
 }
 
 function testSuddenSilence() {
   if (!ctx) { log('Init first'); return; }
-  log('Playing: Sudden Silence (kills drone, restarts after 3-5s)');
-  logEvent('Sudden Silence');
+  log('Sudden Silence'); logEvent('Sudden Silence');
   var now = ctx.currentTime;
   activeNodes.forEach(function(n) { try { n.stop(now); } catch(e) {} });
   activeNodes = [];
@@ -696,42 +1020,305 @@ function testSuddenSilence() {
   master.gain.cancelScheduledValues(now);
   master.gain.setValueAtTime(master.gain.value, now);
   master.gain.linearRampToValueAtTime(0, now + 0.01);
-
-  droneActive = false;
-  droneGainNode = null;
-
+  droneActive = false; droneGainNode = null;
   setTimeout(function() {
     var resumeTime = ctx.currentTime;
     master.gain.setValueAtTime(0, resumeTime);
     master.gain.linearRampToValueAtTime(0.30, resumeTime + 2);
-    droneActive = true;
-    startDrone();
-    updateButtons();
+    droneActive = true; startDrone(); updateButtons();
     logEvent('Drone restarted after silence');
   }, 3000 + Math.random() * 2000);
 }
 
-// ===== COMBOS =====
-function testWhisperBurst() {
+// ========================================================================
+// INTEGRATION COMBOS
+// ========================================================================
+function comboStingerPlusImpact() {
   if (!ctx) { log('Init first'); return; }
-  log('Whisper Burst'); logEvent('Whisper Burst combo');
+  logEvent('COMBO: Stinger + Synth Impact');
+  playStinger('hardCollision', { rate: 1.0 });
+  testImpact();
+}
+
+function comboAtmoPlusDrone() {
+  if (!ctx) { log('Init first'); return; }
+  logEvent('COMBO: Atmosphere + Drone');
+  playAtmosphere('fearOfUnknown', { volume: 0.3 });
+  if (!droneActive) toggleDrone();
+}
+
+function comboBuildupToStinger() {
+  if (!ctx) { log('Init first'); return; }
+  logEvent('COMBO: Build-up → Stinger (stinger fires at end)');
+  var buHowl = howls.buildups['creepingDread'];
+  if (!buHowl) return;
+  var id = playBuildup('creepingDread', { rate: 1.0 });
+  buHowl.once('end', function() {
+    playStinger('killingMachine', { rate: 1.0 });
+    testImpact();
+  });
+}
+
+function comboWhisperBurst() {
+  if (!ctx) { log('Init first'); return; }
+  logEvent('COMBO: Whisper Burst + Stinger');
   testWhisper();
   setTimeout(testWhisper, 200);
   setTimeout(testWhisper, 500);
-  setTimeout(testBreath, 800);
+  setTimeout(function() { testBreath(); playStinger('emptyHallways', { rate: 0.9 }); }, 800);
 }
 
-function testRumbleCombo() {
+function comboRumbleLayered() {
   if (!ctx) { log('Init first'); return; }
-  log('Rumble + Impact'); logEvent('Rumble + Impact combo');
-  testRumble(); testImpact();
+  logEvent('COMBO: Synth Rumble + Build-up');
+  testRumble();
+  playBuildup('endOfDays', { rate: 1.0 });
 }
 
-function testBleedCombo() {
+function comboBleedLayered() {
   if (!ctx) { log('Init first'); return; }
-  log('Whisper + Chord'); logEvent('Whisper + Chord combo');
-  testWhisper(); testDissonantChord();
+  logEvent('COMBO: Bleed (Whisper+Chord) + Atmosphere Swell');
+  testWhisper();
+  testDissonantChord();
+  playAtmosphere('pureEvil', { volume: 0.4, fadeDur: 2000 });
 }
+
+// ========================================================================
+// FULL SCENE TESTS
+// ========================================================================
+function sceneAct1Opening() {
+  if (!ctx) { log('Init first'); return; }
+  logEvent('SCENE: Act I — The Arrival');
+  log('Scene: Act I Opening — drone + fear-of-unknown atmosphere + periodic whispers');
+
+  // Start drone
+  if (!droneActive) toggleDrone();
+
+  // Start atmosphere
+  playAtmosphere('fearOfUnknown', { volume: 0.15 });
+
+  // Schedule a whisper after 4s
+  setTimeout(function() {
+    testWhisper();
+    logEvent('Scene: auto whisper');
+  }, 4000);
+
+  // Stinger at 7s
+  setTimeout(function() {
+    playStinger('emptyHallways');
+    testHeartbeat();
+    logEvent('Scene: heartbeat + stinger');
+  }, 7000);
+}
+
+function sceneAct1Climax() {
+  if (!ctx) { log('Init first'); return; }
+  logEvent('SCENE: Act I — Apotheosis');
+  log('Scene: Act I Climax — impending atmo + run buildup + stingers cascade');
+
+  playAtmosphere('impending', { volume: 0.5, fadeDur: 1500 });
+  playBuildup('run', { rate: 1.0 });
+
+  setTimeout(function() {
+    playStinger('killingMachine');
+    testImpact();
+  }, 3000);
+
+  setTimeout(function() {
+    playStinger('perimeterBreach');
+    testHeartbeat();
+  }, 6000);
+
+  setTimeout(function() {
+    playStinger('rituals', { rate: 0.8 });
+    testRumble();
+  }, 9000);
+}
+
+function sceneAct2Weave() {
+  if (!ctx) { log('Init first'); return; }
+  logEvent('SCENE: Act II — Blue Light Manifests');
+  log('Scene: Act II Blue Light — infernal-machinery + what-twisted-mind buildup');
+
+  if (!droneActive) toggleDrone();
+  playAtmosphere('infernalMachinery', { volume: 0.4, fadeDur: 2000 });
+  playBuildup('whatTwistedMind');
+
+  setTimeout(function() {
+    playStinger('kitchenAttack');
+    testMetalScrape();
+  }, 4000);
+
+  setTimeout(function() {
+    playStinger('hardCollision');
+    testImpact();
+  }, 7000);
+}
+
+function sceneAct3Scavengers() {
+  if (!ctx) { log('Init first'); return; }
+  logEvent('SCENE: Act III — Scavengers Arrive');
+  log('Scene: Act III Scavengers — collision-course + no-it-cant-be buildup');
+
+  playAtmosphere('collisionCourse', { volume: 0.5, fadeDur: 2000 });
+  playBuildup('noItCantBe');
+
+  setTimeout(function() {
+    playBuildup('malevolentSpirit');
+  }, 4000);
+
+  setTimeout(function() {
+    playStinger('innocentChildren', { rate: 0.6 });
+    testHeartbeat();
+  }, 7000);
+
+  setTimeout(function() {
+    playStinger('sliced');
+    testImpact();
+  }, 10000);
+}
+
+function sceneAct3Transfer() {
+  if (!ctx) { log('Init first'); return; }
+  logEvent('SCENE: Act III — The Transfer');
+  log('Scene: Act III Transfer — presence-of-pure-evil + through-dark-corridor + vampire-nest climax');
+
+  if (!droneActive) toggleDrone();
+  playAtmosphere('pureEvil', { volume: 0.5, fadeDur: 2000 });
+  playBuildup('darkCorridor');
+
+  setTimeout(function() { testWhisper(); }, 3000);
+  setTimeout(function() { testWhisper(); }, 5000);
+
+  setTimeout(function() {
+    playStinger('vampireNest');
+    testImpact();
+    testRumble();
+    logEvent('Scene: Transfer climax');
+  }, 8000);
+}
+
+// ========================================================================
+// SPATIAL AUDIO
+// ========================================================================
+function initSpatialCanvas() {
+  var canvas = document.getElementById('spatial-canvas');
+  var canvasCtx = canvas.getContext('2d');
+  drawSpatialCanvas(canvasCtx, canvas, 0, 0);
+
+  canvas.addEventListener('mousedown', function(e) { spatialDrag(e, canvas, canvasCtx); });
+  canvas.addEventListener('mousemove', function(e) { if (e.buttons === 1) spatialDrag(e, canvas, canvasCtx); });
+}
+
+function spatialDrag(e, canvas, canvasCtx) {
+  var rect = canvas.getBoundingClientRect();
+  var cx = (e.clientX - rect.left) / rect.width * 2 - 1;
+  var cy = (e.clientY - rect.top) / rect.height * 2 - 1;
+  spatialX = cx * 10;
+  spatialZ = cy * 10;
+  drawSpatialCanvas(canvasCtx, canvas, cx, cy);
+  document.getElementById('spatial-pos').textContent = 'x: ' + spatialX.toFixed(1) + ', z: ' + spatialZ.toFixed(1);
+
+  // Update position of playing spatial sound
+  if (spatialSoundId !== null && spatialHowl && spatialHowl.playing(spatialSoundId)) {
+    spatialHowl.pos(spatialX, 0, spatialZ, spatialSoundId);
+  }
+}
+
+function drawSpatialCanvas(canvasCtx, canvas, normX, normY) {
+  canvasCtx.fillStyle = '#0a0a0a';
+  canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Grid
+  canvasCtx.strokeStyle = '#1a1a1a';
+  canvasCtx.lineWidth = 1;
+  for (var i = 0; i <= 6; i++) {
+    var p = i * canvas.width / 6;
+    canvasCtx.beginPath(); canvasCtx.moveTo(p, 0); canvasCtx.lineTo(p, canvas.height); canvasCtx.stroke();
+    canvasCtx.beginPath(); canvasCtx.moveTo(0, p); canvasCtx.lineTo(canvas.width, p); canvasCtx.stroke();
+  }
+
+  // Listener (center)
+  canvasCtx.fillStyle = '#4a4';
+  canvasCtx.beginPath(); canvasCtx.arc(canvas.width / 2, canvas.height / 2, 6, 0, Math.PI * 2); canvasCtx.fill();
+  canvasCtx.fillStyle = '#6c6';
+  canvasCtx.font = '10px monospace';
+  canvasCtx.fillText('L', canvas.width / 2 - 3, canvas.height / 2 + 3);
+
+  // Sound source
+  var sx = (normX + 1) / 2 * canvas.width;
+  var sy = (normY + 1) / 2 * canvas.height;
+  canvasCtx.fillStyle = '#c44';
+  canvasCtx.beginPath(); canvasCtx.arc(sx, sy, 8, 0, Math.PI * 2); canvasCtx.fill();
+  canvasCtx.fillStyle = '#f66';
+  canvasCtx.font = '10px monospace';
+  canvasCtx.fillText('S', sx - 3, sy + 3);
+
+  // Distance line
+  canvasCtx.strokeStyle = '#444';
+  canvasCtx.setLineDash([4, 4]);
+  canvasCtx.beginPath(); canvasCtx.moveTo(canvas.width / 2, canvas.height / 2); canvasCtx.lineTo(sx, sy); canvasCtx.stroke();
+  canvasCtx.setLineDash([]);
+}
+
+function spatialPlayAtPosition() {
+  if (!spatialHowl) { log('Init first'); return; }
+  spatialSoundId = spatialHowl.play();
+  spatialHowl.pos(spatialX, 0, spatialZ, spatialSoundId);
+  spatialHowl.pannerAttr({
+    panningModel: 'HRTF',
+    distanceModel: 'exponential',
+    refDistance: 1.0,
+    rolloffFactor: 2.5,
+    maxDistance: 100
+  }, spatialSoundId);
+  logEvent('Spatial: play at (' + spatialX.toFixed(1) + ', 0, ' + spatialZ.toFixed(1) + ')');
+}
+
+function spatialOrbit() {
+  if (!spatialHowl) { log('Init first'); return; }
+  if (orbitInterval) { clearInterval(orbitInterval); orbitInterval = null; }
+
+  spatialSoundId = spatialHowl.play();
+  spatialHowl.loop(true, spatialSoundId);
+  spatialHowl.pannerAttr({
+    panningModel: 'HRTF',
+    distanceModel: 'exponential',
+    refDistance: 1.0,
+    rolloffFactor: 2.0,
+    maxDistance: 100
+  }, spatialSoundId);
+
+  var angle = 0;
+  var canvas = document.getElementById('spatial-canvas');
+  var canvasCtx = canvas.getContext('2d');
+
+  orbitInterval = setInterval(function() {
+    angle += 0.05;
+    var x = Math.cos(angle) * 5;
+    var z = Math.sin(angle) * 5;
+    spatialHowl.pos(x, 0, z, spatialSoundId);
+    spatialX = x; spatialZ = z;
+    var normX = x / 10; var normY = z / 10;
+    drawSpatialCanvas(canvasCtx, canvas, normX, normY);
+    document.getElementById('spatial-pos').textContent = 'x: ' + x.toFixed(1) + ', z: ' + z.toFixed(1) + ' (orbiting)';
+  }, 50);
+
+  logEvent('Spatial: orbiting started');
+}
+
+function spatialStop() {
+  if (orbitInterval) { clearInterval(orbitInterval); orbitInterval = null; }
+  if (spatialHowl) spatialHowl.stop();
+  spatialSoundId = null;
+  logEvent('Spatial: stopped');
+}
+
+// ========================================================================
+// INIT ON LOAD
+// ========================================================================
+buildGrids();
+initSpatialCanvas();
 </script>
 </body>
 </html>

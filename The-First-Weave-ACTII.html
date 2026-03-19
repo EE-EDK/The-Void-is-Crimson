@@ -46,7 +46,10 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js" onerror="window.handleThreeJSLoadError()"></script>
 
-    <!-- Horror Effects Engine -->
+    <!-- Howler.js Audio Library + Horror Sample Engine -->
+    <script src="./assets/js/howler.min.js" defer></script>
+    <script src="./assets/js/horror-samples.js" defer></script>
+    <!-- Horror Effects Engine (synth + visual + trigger integration) -->
     <script src="./assets/js/horror-effects.js" defer></script>
 
 </head>
@@ -65,7 +68,7 @@
 
         <h2>VI. The Shepherd's Vigil</h2>
 
-        <p class="horror-trigger" data-horror="scramble">Seven years.</p>
+        <p class="horror-trigger" data-horror="scramble" data-atmosphere="realmOfShadows" data-atmosphere-vol="0.20">Seven years.</p>
 
         <p>Seven years Jonah had walked the earth as a ghost, a Shepherd whose flock had already been led to slaughter. The word <em>shepherd</em> made him want to laugh and vomit simultaneously. Shepherds protected their flock. Jonah led his to the edge of oblivion and watched them step off.</p>
 
@@ -73,7 +76,7 @@
 
         <p class="horror-whisper" data-whisper="the flock always follows">Jonah was the last of his class. The one who chose to live. The choice felt less like cowardice now and more like a different kind of damnation.</p>
 
-        <p class="horror-trigger" data-horror="intensify">His job was to find the compatible—a task that became a horrifying parody of a headhunter. He would spend months at a time away from Crimson Falls, a wraith in the bustling world, and the Pattern would guide him with a cold whisper in his thoughts. A poet in New Orleans. A mathematician in Cambridge. A painter in rural Mexico. Always the brilliant ones, the sensitive ones, the ones whose minds burned brightest in the Pattern's web.</p>
+        <p class="horror-trigger" data-horror="intensify" data-buildup="creepingDread" data-buildup-vol="0.3" data-extra="reversedSpeech" data-extra-vol="0.1" data-extra-pan="0.5">His job was to find the compatible—a task that became a horrifying parody of a headhunter. He would spend months at a time away from Crimson Falls, a wraith in the bustling world, and the Pattern would guide him with a cold whisper in his thoughts. A poet in New Orleans. A mathematician in Cambridge. A painter in rural Mexico. Always the brilliant ones, the sensitive ones, the ones whose minds burned brightest in the Pattern's web.</p>
 
         <p>His role was not to persuade, but to infect. He would befriend them, find the cracks in their psyche—a past trauma, a professional obsession, a consuming love—and plant the seed. A musical phrase hummed under his breath. A book left on a coffee table. A casual mention of a place in Idaho where the stars were different. He was a virus vector for a cosmic idea, and the idea was always the same: <em>come home.</em></p>
 
@@ -81,17 +84,17 @@
 
         <p>The Pattern was a constant companion, a subvocal hum of shared consciousness that felt less like a network and more like a cage. He saw the shimmering red threads overlaid on everything, a constant reminder of the equation he was helping to solve. In his dreams, he was back in the moment of apotheosis, feeling the terror and transcendence of the fall, only to wake up in his own bed in Room 6, the silence of Crimson Falls pressing in on him. *“No one will ever hear the screams from muffled souls in their desire,”* a line from a half-forgotten poem echoed in his waking thoughts. *“They'll manifest as tortured dreams, like sighs from a heart set on fire.”*</p>
         
-        <p class="horror-trigger" data-horror="heartbeat">In his fourth year, he almost broke.</p>
+        <p class="horror-trigger" data-horror="heartbeat" data-buildup="repressedMemories" data-buildup-vol="0.35" data-extra="childLullaby" data-extra-vol="0.08">In his fourth year, he almost broke.</p>
 
         <p>His target was a young musician in Seattle named Maya, a cellist whose compositions were so complex, so infused with an intuitive understanding of psychoacoustics, that the Pattern had identified her as a critical node. Jonah spent weeks observing her, watching her perform in small clubs, her music a thing of heartbreaking beauty. He saw the kindness in her, the life she was building, the love she shared with her partner. He saw her stop on the street to help a stranger carry groceries. He heard her laugh through her apartment window, a sound so genuinely alive it made his teeth ache.</p>
 
         <p>One rain-slicked evening, he was meant to make contact, to begin the subtle process of infection. He sat in his car across the street from her apartment, the seed—a rare recording of a dissonant folk melody—in his pocket. He watched her through the window, laughing with her partner, and he couldn't do it.</p>
 
-        <p class="horror-trigger" data-horror="screech">He drove away, the Pattern screaming in his mind, a psychic shriek of frustration and command. He drove for three days, a fugitive from his own purpose, until the roads began to curve back, until every sign pointed to Crimson Falls, and he found himself back in his room at the Starfall Inn, shaking and broken.</p>
+        <p class="horror-trigger" data-horror="screech" data-stinger="cruelFate" data-stinger-vol="0.6" data-stinger-rate="0.8">He drove away, the Pattern screaming in his mind, a psychic shriek of frustration and command. He drove for three days, a fugitive from his own purpose, until the roads began to curve back, until every sign pointed to Crimson Falls, and he found himself back in his room at the Starfall Inn, shaking and broken.</p>
 
         <p>Two weeks later, another Shepherd reported that Maya had been successfully cultivated. Jonah never knew who took his place. He only knew that the equation had been balanced, and a beautiful light had been extinguished from the world. He also knew, with a certainty that sat in his stomach like a stone, that Maya's partner would spend the rest of her life wondering what had gone wrong, why the woman she loved had suddenly become fixated on a place in Idaho she'd never heard of, why she'd driven away one morning without saying goodbye. The Pattern didn't account for collateral damage. It didn't need to.</p>
 
-        <p class="horror-trigger" data-horror="flicker">After that, he retreated deeper into the lore of his prison. He discovered the abandoned research outpost on the far side of the butte, a relic from the 1950s where the first Shepherds had tried to understand what they had found. It was there, buried beneath a loose floorboard in a room filled with dust and dead scientific equipment, that he found the book. It was bound in what looked disturbingly like human skin, the pages brittle and filled with the frantic scrawls of Dr. Aris Thorne, the Oppenheimer-adjacent physicist who had first discovered Crimson Falls in 1948 after fleeing the Trinity tests with a head full of screaming, impossible colors. The journal became Jonah's bible and his curse. It suggested the math of their sacrifice was terrifyingly incomplete.</p>
+        <p class="horror-trigger" data-horror="flicker" data-stinger="creakingNoise" data-stinger-vol="0.3">After that, he retreated deeper into the lore of his prison. He discovered the abandoned research outpost on the far side of the butte, a relic from the 1950s where the first Shepherds had tried to understand what they had found. It was there, buried beneath a loose floorboard in a room filled with dust and dead scientific equipment, that he found the book. It was bound in what looked disturbingly like human skin, the pages brittle and filled with the frantic scrawls of Dr. Aris Thorne, the Oppenheimer-adjacent physicist who had first discovered Crimson Falls in 1948 after fleeing the Trinity tests with a head full of screaming, impossible colors. The journal became Jonah's bible and his curse. It suggested the math of their sacrifice was terrifyingly incomplete.</p>
 
         <hr>
 
@@ -107,7 +110,7 @@
 
             <p><strong>March 28, 1952.</strong><br>The sensory shifts are becoming more pronounced. Last night, for a period of three hours, I lost my sense of sight and it was replaced by… something else. I could perceive the valley not as a collection of objects in space, but as a network of gravitational relationships. The butte was not a rock, but a profound indentation in spacetime. The holes were not voids, but points of infinite density pulling at the fabric of my perception. I felt the ley lines, not as mystical energy, but as the nascent synaptic pathways of the dreaming god beneath us. It is gestating. The sacrifices we make… are we lulling it to sleep, or are we feeding it?</p>
 
-            <p class="horror-trigger" data-horror="rumble"><strong>February 9, 1953.</strong><br>A terrifying hypothesis has taken root: We are not just trying to stay quiet to avoid the notice of the Entities in the Dark. We must also stay quiet to avoid waking the Founders of the Weave. What would a mind that vast, dreaming for a million years, do upon waking to find a lesser species screaming in its thoughts? It would not be malice. It would be instinct. A man brushing away a fly. A psychic cataclysm born of simple irritation. The holes are not just a release valve for our own consciousness; they are a bloodletting. A sacrifice to keep the great and ancient dreamers dreaming.</p>
+            <p class="horror-trigger" data-horror="rumble" data-stinger="harbingersOfDoom" data-stinger-vol="0.5"><strong>February 9, 1953.</strong><br>A terrifying hypothesis has taken root: We are not just trying to stay quiet to avoid the notice of the Entities in the Dark. We must also stay quiet to avoid waking the Founders of the Weave. What would a mind that vast, dreaming for a million years, do upon waking to find a lesser species screaming in its thoughts? It would not be malice. It would be instinct. A man brushing away a fly. A psychic cataclysm born of simple irritation. The holes are not just a release valve for our own consciousness; they are a bloodletting. A sacrifice to keep the great and ancient dreamers dreaming.</p>
 
             <p><strong>March 3, 1953.</strong><br>I can no longer sleep. When I close my eyes, I see the architecture of the Weave from the inside, and it is not what I expected. It is not a web or a network. It is a <em>body</em>. A body made of thought, curled in on itself in the fetal position, vast beyond comprehension, dreaming itself into existence at the bottom of reality. We are not standing on rock. We are standing on the skin of a god that is still being born. The holes are its pores. The Red Frequency is its heartbeat. And we, God help us, we are the bacteria in its gut, convinced we are the masters of the universe. I have stopped eating. Food has no taste. I can only taste mathematics now, and the equations all taste like copper and ozone. I must stop writing. The Weave is listening.</p>
         </div>
@@ -142,9 +145,9 @@
 
         <p>"Yes," Iris agreed. But for the first time, Jonah saw a flicker of something in her eyes. It wasn't pity or certainty. It was fear. "But there is another complication. The Pattern has been… agitated. This new candidate, Akari, she is not just compatible."</p>
 
-        <p class="trigger-akari">"What is she?" Jonah whispered, a premonition crawling up his spine.</p>
+        <p class="trigger-akari" data-buildup="destinyCalling" data-buildup-vol="0.35" data-buildup-fade="3000" data-extra="crystalResonance" data-extra-vol="0.2" data-extra-rate="0.7">"What is she?" Jonah whispered, a premonition crawling up his spine.</p>
 
-        <p class="horror-trigger" data-horror="impact">"She is a Resonator," Iris said, the word hanging in the air like a death sentence. "Thorne wrote about it. A failsafe. A key. The Pattern, in its blind instinct, has cultivated the one person who isn't meant to be a sacrifice. She is meant to be a catalyst."</p>
+        <p class="horror-trigger" data-horror="impact" data-stinger="hardCollision" data-stinger-vol="0.5" data-extra="crystalResonance" data-extra-vol="0.3">"She is a Resonator," Iris said, the word hanging in the air like a death sentence. "Thorne wrote about it. A failsafe. A key. The Pattern, in its blind instinct, has cultivated the one person who isn't meant to be a sacrifice. She is meant to be a catalyst."</p>
 
         <hr>
 
@@ -178,7 +181,7 @@
 
         <h2>IX. The Resonator</h2>
 
-        <p class="horror-trigger" data-horror="glitch">The new one, Akari, did not arrive like the others. There was no rental car crunching on gravel, no hesitant knock on the office door. Jonah found her standing at the edge of the desert where the road to Crimson Falls technically began, a solitary figure against the vast, bruised twilight. She carried a single, minimalist backpack and wore a simple black jacket against the Idaho chill. Her short, dark hair was unmoved by the wind—not styled to be still, but genuinely <em>unmoved</em>, as if the air around her had decided not to touch her. She was watching the town as if it were a puzzle box she was moments from solving, or perhaps as if she were the box and Crimson Falls were the hand about to open her.</p>
+        <p class="horror-trigger" data-horror="glitch" data-atmosphere="mrNefarious" data-atmosphere-vol="0.22" data-extra="crystalResonance" data-extra-vol="0.25">The new one, Akari, did not arrive like the others. There was no rental car crunching on gravel, no hesitant knock on the office door. Jonah found her standing at the edge of the desert where the road to Crimson Falls technically began, a solitary figure against the vast, bruised twilight. She carried a single, minimalist backpack and wore a simple black jacket against the Idaho chill. Her short, dark hair was unmoved by the wind—not styled to be still, but genuinely <em>unmoved</em>, as if the air around her had decided not to touch her. She was watching the town as if it were a puzzle box she was moments from solving, or perhaps as if she were the box and Crimson Falls were the hand about to open her.</p>
 
         <p>She turned as he approached, and for the first time in his seven years as a Shepherd, Jonah felt a tremor of true, primal fear. It wasn't her appearance—she was young, maybe twenty-five, with calm, intelligent eyes. It was what he saw—and didn't see—in the Pattern around her. The red threads of human connection that clung to everyone, the psychic residue of a lived life, were almost entirely absent. She was a psychic blank slate, a void in the network. But from that void, a single, impossibly thick thread of shimmering, crystalline blue—the color of the Weave—extended from her and disappeared into the earth beneath her feet.</p>
 
@@ -202,19 +205,19 @@
         
         <p>She raised her bow and began to play.</p>
 
-        <p class="trigger-frequency trigger-akari">The first movement, *Awakening*, sounded wrong from the first note. The familiar, grieving melody was there, but beneath it was a counter-melody, a harmonic that wasn't coming from the viola. It was coming from Akari. Her body was perfectly still, but the air around her vibrated, producing a low, resonant hum that harmonized with Iris's playing, twisting it, re-contextualizing it. The red auras that should have been blooming around them were shot through with threads of brilliant, crystalline blue.</p>
+        <p class="trigger-frequency trigger-akari" data-atmosphere="infernalMachinery" data-atmosphere-vol="0.25" data-extra="violaDrone" data-extra-vol="0.25" data-extra-pan="-0.8" data-extra2="crystalResonance" data-extra2-vol="0.2" data-extra2-pan="0.8">The first movement, *Awakening*, sounded wrong from the first note. The familiar, grieving melody was there, but beneath it was a counter-melody, a harmonic that wasn't coming from the viola. It was coming from Akari. Her body was perfectly still, but the air around her vibrated, producing a low, resonant hum that harmonized with Iris's playing, twisting it, re-contextualizing it. The red auras that should have been blooming around them were shot through with threads of brilliant, crystalline blue.</p>
 
-        <p class="horror-trigger" data-horror="screech">The Pattern screamed in Jonah's mind. *Wrong. The math is wrong. The sequence is unstable. Abort.*</p>
+        <p class="horror-trigger" data-horror="screech" data-stinger="kitchenAttack" data-stinger-vol="0.6" data-stinger-pan="-0.8">The Pattern screamed in Jonah's mind. *Wrong. The math is wrong. The sequence is unstable. Abort.*</p>
 
         <p>But Iris played on, her face pale, sweat beading on her forehead. She was fighting a duel, her music pushing the lullaby, Akari's resonance pushing back with a question.</p>
         
         <p>The second movement, *Perception*, began. And Akari turned her head slightly, her eyes closed. "You have been dreaming for so long," she said, her voice quiet but clear over the music. She was not speaking to them. "You have forgotten the sound of your own name."</p>
 
-        <p class="trigger-weave horror-trigger" data-horror="impact">The ground trembled. Not a violent earthquake, but a deep, resonant shudder, as if a mountain were shifting in its sleep. The blue light of the Weave, visible only to the aligned, flared, becoming the dominant color in their perception. The red threads of the human Pattern seemed to dim, to shrink away from the overwhelming power that was stirring beneath them.</p>
+        <p class="trigger-weave horror-trigger" data-horror="impact" data-stinger="hardCollision" data-stinger-vol="0.7" data-buildup="whatTwistedMind" data-buildup-vol="0.5" data-extra="metalGroaning" data-extra-vol="0.3">The ground trembled. Not a violent earthquake, but a deep, resonant shudder, as if a mountain were shifting in its sleep. The blue light of the Weave, visible only to the aligned, flared, becoming the dominant color in their perception. The red threads of the human Pattern seemed to dim, to shrink away from the overwhelming power that was stirring beneath them.</p>
 
         <p>The music faltered. Iris's bow scraped across the strings, producing a screech of dissonance. She stared at Akari, her eyes wide with terror.</p>
 
-        <p class="horror-trigger" data-horror="bleed">"You think this music is your weapon," Akari said, opening her eyes. They were no longer calm. They burned with a cold, ancient light. "You have been singing a cage into existence, thinking it was a shield. You have been feeding your children to a god, hoping it would not notice the taste."</p>
+        <p class="horror-trigger" data-horror="bleed" data-buildup="endOfDays" data-buildup-vol="0.4" data-extra="crystalResonance" data-extra-vol="0.35">"You think this music is your weapon," Akari said, opening her eyes. They were no longer calm. They burned with a cold, ancient light. "You have been singing a cage into existence, thinking it was a shield. You have been feeding your children to a god, hoping it would not notice the taste."</p>
 
         <p>The third movement began, but it was not Iris's. A new music filled the air, a symphony of impossible harmonics and geological bass notes that rose from the ground, from the holes, from Akari herself. It was the Weave's music. The *Reveille*. And it was terrifyingly beautiful.</p>
         
@@ -236,7 +239,7 @@
         
         <p>"You have done what you were designed to do," Akari-as-the-Weave replied. "You have served your purpose." She turned to face Jonah, and in her burning eyes he saw the vast, cold expanse of a million years of silent, dreaming thought. He saw a mind that had solved the problem of entropy, a consciousness that viewed galaxies as fleeting thoughts.</p>
         
-        <p class="horror-trigger" data-horror="glitch">"The Pattern was our cradle," the chorus-voice said. "Now it becomes our engine. We will not be erased. We will not hide. When the Scavengers arrive, we will be waiting. And we will be the ones who are hungry."</p>
+        <p class="horror-trigger" data-horror="glitch" data-atmosphere="afterHumanityLostTheWar" data-atmosphere-vol="0.25">"The Pattern was our cradle," the chorus-voice said. "Now it becomes our engine. We will not be erased. We will not hide. When the Scavengers arrive, we will be waiting. And we will be the ones who are hungry."</p>
 
         <div class="narrative-pause"></div>
 
@@ -246,11 +249,11 @@
         
         <p>Jonah stood alone in the field, Iris and Dr. Venn having collapsed to their knees, their minds broken by the raw scale of the revelation. He was the last Shepherd of a forgotten faith. He had chosen to live, and his punishment was to witness the end of the world he had tried to save, and the birth of the one that would replace it.</p>
         
-        <p class="horror-trigger" data-horror="heartbeat">He looked at his hands. The skin was translucent, and beneath it, shimmering blue light pulsed through his veins in rhythms that didn't match his heartbeat. He was not just a node anymore. He was a component. A circuit in a machine that had been building itself for fifty thousand years. Humanity was not being saved. It was being <em>assembled</em>.</p>
+        <p class="horror-trigger" data-horror="heartbeat" data-stinger="memoryFlash" data-stinger-vol="0.5">He looked at his hands. The skin was translucent, and beneath it, shimmering blue light pulsed through his veins in rhythms that didn't match his heartbeat. He was not just a node anymore. He was a component. A circuit in a machine that had been building itself for fifty thousand years. Humanity was not being saved. It was being <em>assembled</em>.</p>
 
         <p>The age of Man was over. The age of the Weave had begun.</p>
 
-        <p class="horror-whisper" data-whisper="this was always the plan">And in the field of holes, the darkness pulsed with new light, and the things that lived in the spaces between universes turned their vast, eyeless attention toward a world that had just become something they had never tasted before. Something that smelled like fear and tasted like hope and burned with the terrible brightness of seven billion minds screaming in unison.</p>
+        <p class="horror-whisper" data-whisper="this was always the plan" data-stinger="rituals" data-stinger-vol="0.25" data-stinger-rate="0.7">And in the field of holes, the darkness pulsed with new light, and the things that lived in the spaces between universes turned their vast, eyeless attention toward a world that had just become something they had never tasted before. Something that smelled like fear and tasted like hope and burned with the terrible brightness of seven billion minds screaming in unison.</p>
 
         <hr>
 

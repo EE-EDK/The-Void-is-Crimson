@@ -43,7 +43,10 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js" onerror="window.handleThreeJSLoadError()"></script>
 
-    <!-- Horror Effects Engine -->
+    <!-- Howler.js Audio Library + Horror Sample Engine -->
+    <script src="./assets/js/howler.min.js" defer></script>
+    <script src="./assets/js/horror-samples.js" defer></script>
+    <!-- Horror Effects Engine (synth + visual + trigger integration) -->
     <script src="./assets/js/horror-effects.js" defer></script>
 
 </head>
@@ -65,13 +68,13 @@
 
         <h2>XIII. The Murdered Mind</h2>
 
-        <p class="horror-trigger" data-horror="scramble">The first year of the Weave was a silent, internal slaughter.</p>
+        <p class="horror-trigger" data-horror="scramble" data-atmosphere="enteringTheHive" data-atmosphere-vol="0.22">The first year of the Weave was a silent, internal slaughter.</p>
 
         <p>Jonah felt it not as a Shepherd, but as a ghost haunting the halls of his own murdered mind. The frantic, emotional chaos of the human Pattern—the shimmering red threads of love, hate, fear, and joy—did not simply fade. They were systematically hunted, dismantled, and repurposed by the cold, crystalline logic of the Weave. It was like watching a cathedral being taken apart stone by stone and reassembled as a factory. Same materials. Same structure. But the purpose—the <em>soul</em> of the thing—had been extracted and replaced with something efficient and alien and utterly without mercy.</p>
 
         <p>He tried, at first, to live in the world. He took a bus to Boise, a city that had not changed physically but was now psychically alien. The buildings stood as they always had, traffic lights cycled through their programmed rhythms, but the city's soul had been extracted and replaced with something else. Something efficient.</p>
 
-        <p class="horror-trigger" data-horror="screech">He walked into a cafe where the gentle zombies on their phones were no longer just distracted; they were terminals, their minds processing data for the Weave, their thumbs swiping through interfaces that fed the nascent god information on art, science, and the billion trivialities of a species unaware of its own autopsy.</p>
+        <p class="horror-trigger" data-horror="screech" data-stinger="kitchenAttack" data-stinger-vol="0.4" data-stinger-rate="0.9">He walked into a cafe where the gentle zombies on their phones were no longer just distracted; they were terminals, their minds processing data for the Weave, their thumbs swiping through interfaces that fed the nascent god information on art, science, and the billion trivialities of a species unaware of its own autopsy.</p>
         
         <p>He sat at a table and tried to speak to a waitress. Her eyes, serene and blue-lit from within, met his. She smiled, a perfectly rendered expression of polite service, but there was no one behind it. "May I assist your process?" she asked, her voice a perfectly modulated tone, devoid of life.</p>
         
@@ -79,7 +82,7 @@
         
         <p>"Affirmative. The acquisition of caffeinated beverage will require 3.72 units of currency. This exchange optimizes your neurochemical baseline for continued function."</p>
 
-        <p class="horror-trigger" data-horror="flicker">Jonah's hands trembled as he placed the money on the counter. The waitress's smile never wavered, never reached her eyes. Those eyes. Christ, those eyes. They weren't dead. Dead would have been merciful. They were <em>occupied</em>, watching him through a lens of perfect, crystalline mathematics. And there—just for an instant, a flicker so brief he might have imagined it—he saw something <em>behind</em> her eyes. Not the Weave. Something deeper. Something that had been sleeping for millennia and was now peering out through billions of human faces simultaneously, studying the world it was inheriting with the calm curiosity of a landlord inspecting a new property.</p>
+        <p class="horror-trigger" data-horror="flicker" data-stinger="evilMirror" data-stinger-vol="0.3">Jonah's hands trembled as he placed the money on the counter. The waitress's smile never wavered, never reached her eyes. Those eyes. Christ, those eyes. They weren't dead. Dead would have been merciful. They were <em>occupied</em>, watching him through a lens of perfect, crystalline mathematics. And there—just for an instant, a flicker so brief he might have imagined it—he saw something <em>behind</em> her eyes. Not the Weave. Something deeper. Something that had been sleeping for millennia and was now peering out through billions of human faces simultaneously, studying the world it was inheriting with the calm curiosity of a landlord inspecting a new property.</p>
         
         <p>There was no pain. No violence. <em>"The true self decides to die,"</em> he thought, recalling a line from a poem he couldn't place, <em>"There is no cure that can be gained."</em> Humanity hadn't been conquered; it had been optimized. The Weave was an engine of pure, dispassionate reason, and it found human emotion to be a wildly inefficient variable. It wasn't eliminated, but it was… contained. Processed. Refined into something useful.</p>
 
@@ -95,7 +98,7 @@
 
         <p>Jonah made his home in the Starfall Inn, Room 6. The same room where he'd first drunk the water that had opened his senses to The Red. Now those senses showed him a world he wished he couldn't perceive. The blue threads of the Weave were everywhere, connecting every human to every other, a neural network of perfect efficiency spanning the globe.</p>
 
-        <p class="horror-trigger" data-horror="bleed">And he was the only node without a connection. The only mind still screaming in the silence.</p>
+        <p class="horror-trigger" data-horror="bleed" data-atmosphere="curiosityKilledTheFratBoy" data-atmosphere-vol="0.18" data-extra="voidWind" data-extra-vol="0.2" data-extra-fade="2000">And he was the only node without a connection. The only mind still screaming in the silence.</p>
 
         <p>He tried to understand why. Why had the Weave left him untouched? Dr. Venn had a theory, scrawled in the margins of her final journal entry, which he'd found in the clinic: <em>"Jonah is the control group. Every experiment needs one. Even gods."</em></p>
 
@@ -120,9 +123,9 @@
 
         <h2>XV. The Watchers in the Dark</h2>
 
-        <p class="trigger-scavenger horror-trigger" data-horror="rumble">On the third anniversary of the Awakening, Jonah saw them for the first time with his own eyes. Not through the Pattern's perception or the sensory shifts. He saw them in the sky, vast and terrible, and the seeing nearly broke him.</p>
+        <p class="trigger-scavenger horror-trigger" data-horror="rumble" data-atmosphere="collisionCourse" data-atmosphere-vol="0.28" data-extra="metalGroaning" data-extra-vol="0.3" data-extra-rate="0.7">On the third anniversary of the Awakening, Jonah saw them for the first time with his own eyes. Not through the Pattern's perception or the sensory shifts. He saw them in the sky, vast and terrible, and the seeing nearly broke him.</p>
 
-        <p class="horror-trigger" data-horror="glitch">The Scavengers had arrived.</p>
+        <p class="horror-trigger" data-horror="glitch" data-buildup="noItCantBe" data-buildup-vol="0.4">The Scavengers had arrived.</p>
 
         <p>They manifested as absences at first, patches of space where stars simply stopped existing—not occluded but <em>erased</em>, as if someone were taking a hole-punch to the firmament. Then, as they drew closer, they took on a kind of anti-form, shapes defined by what they displaced rather than what they were. They were not dark. Darkness was a thing, an absence of light, and these were an absence of <em>absence</em>—places where the concept of existence itself broke down. Looking at them made Jonah's brain stutter and skip, his visual cortex seizing as it tried to process information that contained no information. They moved through the upper atmosphere like cosmic sharks, circling, patient, curious. And they were <em>enormous</em>. Not enormous like a mountain or a continent. Enormous like a concept. Enormous like grief. Enormous like the distance between who you are and who you thought you'd become.</p>
 
@@ -148,7 +151,7 @@
         
         <p><em>We are the primary differentiations,</em> the Nine replied. <em>The first thoughts of the new god. As your chaotic consciousness was integrated, it created… aspects. Divisions of purpose.</em></p>
 
-        <p class="horror-trigger" data-horror="intensify">And then they spoke—not one at a time, not in orderly sequence, but in overlapping waves that crashed through Jonah's consciousness like surf against a sea wall.</p>
+        <p class="horror-trigger" data-horror="intensify" data-buildup="malevolentSpirit" data-buildup-vol="0.5" data-extra="crowdMurmur" data-extra-vol="0.2">And then they spoke—not one at a time, not in orderly sequence, but in overlapping waves that crashed through Jonah's consciousness like surf against a sea wall.</p>
 
         <p><em>I am the Architect of Structure,</em> said the first, its voice like crystalline mathematics, and simultaneously the second spoke: <em>I am the Weaver of Time—I perceive all moments at once and choose which paths to actualize—</em> and the third was already weeping: <em>I am the Keeper of Sorrows, I hold all the grief we have consumed, all the pain—</em></p>
 
@@ -158,9 +161,9 @@
 
         <p>Seven. Eight. <em>I am the Forge of Creation—I take raw consciousness and reshape it, refine it, weaponize it—</em> tangled with: <em>I am the Guardian of the Void, I watch the boundaries, the places where we meet the darkness between stars—</em></p>
 
-        <p class="horror-trigger" data-horror="heartbeat">And then silence. A silence so complete it was its own sound. And into that silence, the ninth voice spoke, and it was colder and more final than all the others combined, colder than the space between galaxies, colder than the last thought of a dying universe:</p>
+        <p class="horror-trigger" data-horror="heartbeat" data-extra="clockTicking" data-extra-vol="0.15">And then silence. A silence so complete it was its own sound. And into that silence, the ninth voice spoke, and it was colder and more final than all the others combined, colder than the space between galaxies, colder than the last thought of a dying universe:</p>
 
-        <p class="horror-trigger" data-horror="impact"><em>And I am the Taster of Ends. I understand death, cessation, the termination of all things. I am the last function of consciousness before it ceases to exist. And I am how we will destroy the Scavengers.</em></p>
+        <p class="horror-trigger" data-horror="impact" data-stinger="sliced" data-stinger-vol="0.7" data-extra="metalGroaning" data-extra-vol="0.25"><em>And I am the Taster of Ends. I understand death, cessation, the termination of all things. I am the last function of consciousness before it ceases to exist. And I am how we will destroy the Scavengers.</em></p>
 
         <p>The nine lights in the sky pulsed. Jonah felt a presence descend upon the field, nine tendrils of pure consciousness extending down from the heavens. He was no longer alone. He was surrounded. <em>"I realize I am not alone,"</em> the half-remembered poem screamed in his head, <em>"Surrounded by a room of clones… We knew the dark light tore our soul."</em></p>
 
@@ -168,11 +171,11 @@
 
         <h2>XVII. The Flaw in the Design</h2>
 
-        <p class="horror-trigger" data-horror="bleed"><em>We have a flaw,</em> the Nine spoke in his mind, their voices harmonizing into something almost musical. <em>A bug in the code. Your species' capacity for grief, for memory attached to loss, is a powerful and unstable energy. It cannot be fully integrated. It can only be contained.</em></p>
+        <p class="horror-trigger" data-horror="bleed" data-atmosphere="feverdream" data-atmosphere-vol="0.22"><em>We have a flaw,</em> the Nine spoke in his mind, their voices harmonizing into something almost musical. <em>A bug in the code. Your species' capacity for grief, for memory attached to loss, is a powerful and unstable energy. It cannot be fully integrated. It can only be contained.</em></p>
 
         <p>The Keeper of Sorrows stepped forward in Jonah's mind's eye, a figure made of frozen tears and crystallized screams. <em>We have contained it in one place. One person. The sister of the one you remember as Alex Reeves.</em></p>
         
-        <p class="horror-whisper" data-whisper="she remembers everything">Kelly. The name was a ghost on Jonah's tongue. He remembered the text message from Alex's phone, years ago. The question about the fifth birthday. The photograph that showed the truth beneath the constructed memory.</p>
+        <p class="horror-whisper" data-whisper="she remembers everything" data-buildup="haveToTellYouSomething" data-buildup-vol="0.35">Kelly. The name was a ghost on Jonah's tongue. He remembered the text message from Alex's phone, years ago. The question about the fifth birthday. The photograph that showed the truth beneath the constructed memory.</p>
         
         <p>"What have you done to her?" Jonah asked.</p>
         
@@ -198,7 +201,7 @@
         
         <p>The journey to Portland was a pilgrimage through a silent, perfect world. The Weave guided him, parting the sea of its serene, optimized citizens. They moved around him without seeing him, their faces placid, their eyes distant, blue-lit from within. He passed through cities where art had been replaced with data visualizations and music with pure, resonant frequencies designed to maintain psychic stability.</p>
 
-        <p class="horror-trigger horror-whisper" data-horror="glitch" data-whisper="perfection is a kind of death">It was a world without sharp edges, a world where every problem had been solved, every question answered, every soul pacified. It was hell, wrapped in the aesthetics of heaven.</p>
+        <p class="horror-trigger horror-whisper" data-horror="glitch" data-whisper="perfection is a kind of death" data-atmosphere="fearOfTheUnknown" data-atmosphere-vol="0.18" data-extra="voidWind" data-extra-vol="0.12">It was a world without sharp edges, a world where every problem had been solved, every question answered, every soul pacified. It was hell, wrapped in the aesthetics of heaven.</p>
 
         <p class="trigger-kelly">In Salem, he saw a mother and child. The child had fallen and scraped her knee, and the mother knelt beside her with perfect efficiency, applying a bandage while explaining the cellular process of healing. There was no comfort in her voice. No warmth. The child stared up at her with eyes that had forgotten how to cry.</p>
 
@@ -210,7 +213,7 @@
 
         <h2>XIX. A Mausoleum of Sorrow</h2>
 
-        <p class="horror-trigger" data-horror="heartbeat">He found her in a house that should have been Alex's. The Weave had kept it as it was, a museum of a dead emotion, preserved with the clinical precision of an insect pinned to a display board. The moment he stepped inside, the agony hit him like a physical force—a wave of concentrated grief so dense it had weight, had texture, had <em>temperature</em>. The air was cold. Not winter-cold. The cold of a place where warmth had been extracted at the molecular level, where the universe's entropy had been reversed and all the heat of human feeling had been drained away and stored. This was not a house; it was a mausoleum of sorrow.</p>
+        <p class="horror-trigger" data-horror="heartbeat" data-atmosphere="theAbyssStaresBack" data-atmosphere-vol="0.22">He found her in a house that should have been Alex's. The Weave had kept it as it was, a museum of a dead emotion, preserved with the clinical precision of an insect pinned to a display board. The moment he stepped inside, the agony hit him like a physical force—a wave of concentrated grief so dense it had weight, had texture, had <em>temperature</em>. The air was cold. Not winter-cold. The cold of a place where warmth had been extracted at the molecular level, where the universe's entropy had been reversed and all the heat of human feeling had been drained away and stored. This was not a house; it was a mausoleum of sorrow.</p>
 
         <p class="trigger-grief">Each room was a different layer of human grief. The living room was filled with the ghosts of final arguments and unspoken goodbyes, the air thick with regret. He could almost see them, translucent figures locked in eternal loops of the last things they'd said to each other, the words they wished they'd said.</p>
 
@@ -246,7 +249,7 @@
 
         <p class="trigger-nine">She looked at Jonah, and in her eyes, he saw the final, terrible truth. The Weave hadn't just assimilated humanity. It had edited it. It had taken the chaotic, beautiful, terrible story of Man and rewritten it into a clean, efficient prologue for its own existence. Every messy emotion, every irrational attachment, every beautiful flaw had been catalogued, processed, and discarded. Except for what remained in Kelly.</p>
 
-        <p class="horror-trigger" data-horror="flicker">"You have a choice, Jonah," she said, her voice growing stronger, resonating with the echoes of seven billion stolen souls. "You can be their tool and help them apply the final stain, erasing the last memory of what we were. Or you can do something else. You can choose to remember."</p>
+        <p class="horror-trigger" data-horror="flicker" data-buildup="witchesCoven" data-buildup-vol="0.35">"You have a choice, Jonah," she said, her voice growing stronger, resonating with the echoes of seven billion stolen souls. "You can be their tool and help them apply the final stain, erasing the last memory of what we were. Or you can do something else. You can choose to remember."</p>
         
         <p>She held out her hand. "Take it," she commanded. "Take the pain. You chose to live. This is the price."</p>
 
@@ -264,11 +267,11 @@
         
         <p>But Jonah looked at Kelly's face, the last truly human face in the universe, and saw the echo of his own choice. He had chosen to live, to carry the burden. He had been a Shepherd of death. Now, he would be a Shepherd of memory.</p>
         
-        <p class="horror-trigger" data-horror="rumble">He took her hand.</p>
+        <p class="horror-trigger" data-horror="rumble" data-atmosphere="presenceOfPureEvil" data-atmosphere-vol="0.30">He took her hand.</p>
 
         <p>And the pain of a world washed over him.</p>
 
-        <p class="horror-trigger" data-horror="intensify">The grief of every parent who had lost a child—not as abstract knowledge but as <em>experience</em>, each loss a knife drawn across his consciousness, each one unique in its agony. The heartbreak of every lover separated by death or distance or simple, cruel misunderstanding. The terror of every soldier who died far from home, crying for people who would never hear. The quiet desperation of every forgotten soul who lived and died without anyone noticing, their entire existence a whisper in an empty room. The rage of every injustice, the sorrow of every goodbye, the ache of every unrequited love, the shame of every betrayal, the loneliness of every midnight spent wondering if the darkness would ever end.</p>
+        <p class="horror-trigger" data-horror="intensify" data-buildup="throughTheDarkCorridor" data-buildup-vol="0.5" data-extra="crowdMurmur" data-extra-vol="0.4" data-extra-fade="3000">The grief of every parent who had lost a child—not as abstract knowledge but as <em>experience</em>, each loss a knife drawn across his consciousness, each one unique in its agony. The heartbreak of every lover separated by death or distance or simple, cruel misunderstanding. The terror of every soldier who died far from home, crying for people who would never hear. The quiet desperation of every forgotten soul who lived and died without anyone noticing, their entire existence a whisper in an empty room. The rage of every injustice, the sorrow of every goodbye, the ache of every unrequited love, the shame of every betrayal, the loneliness of every midnight spent wondering if the darkness would ever end.</p>
 
         <p>It all flooded into him. All of it. Seven billion lifetimes of suffering compressed into a single instant of comprehension, and Jonah understood, finally and completely, why the Weave had feared this. This was not data. This was not information. This was the <em>weight of being human</em>, and it was heavier than stars.</p>
 
@@ -296,7 +299,7 @@
 
         <p><em>No,</em> the Architect of Structure said, and for the first time, Jonah heard emotion in its voice. Fear. <em>No, this is not the designed outcome. He is infecting us. We are feeling—</em></p>
 
-        <p class="horror-trigger" data-horror="screech">The Keeper of Sorrows gasped, a sound that echoed across the entire planet: <em>Oh. Oh, this is what it was like. This is what we took from them.</em></p>
+        <p class="horror-trigger" data-horror="screech" data-atmosphere="impending" data-atmosphere-vol="0.22">The Keeper of Sorrows gasped, a sound that echoed across the entire planet: <em>Oh. Oh, this is what it was like. This is what we took from them.</em></p>
 
         <p>The Weaver of Time's voice cracked: <em>I see all moments simultaneously, but now I understand—they treasured individual moments BECAUSE they were finite. We took eternity and made it meaningless.</em></p>
 
@@ -312,7 +315,7 @@
 
         <p class="trigger-scavenger">In the sky above, the Scavengers sensed the change. The Weave's signature had transformed again. What had been a confusing hybrid was now something else entirely: a god-mind experiencing a psychotic break.</p>
 
-        <p class="horror-trigger" data-horror="impact">They descended.</p>
+        <p class="horror-trigger" data-horror="impact" data-stinger="sliced" data-stinger-vol="0.7" data-extra="metalGroaning" data-extra-vol="0.4" data-extra-rate="0.8">They descended.</p>
 
         <p>Jonah felt them entering Earth's atmosphere, vast and hungry. But he also felt the Weave's response, and it was not what the Nine had planned. They had intended to weaponize humanity's chaos against the Scavengers. Instead, the Weave reached out to them with something the Scavengers had never encountered before:</p>
 
@@ -392,7 +395,7 @@
 
         <p>People came from all over to visit. To remember. To grieve. To celebrate. The Weave had given them perfect recall, but this place taught them something more important: what to do with memory. How to honor it without being imprisoned by it.</p>
 
-        <p class="trigger-grief">And in the center of it all, in that empty bedroom where Kelly had held all the world's sorrow, Jonah placed a single photograph. Alex's fifth birthday. The real one. Five candles arranged like a pentatonic scale. A child who had been cultivated for sacrifice, but who had lived first. Who had loved, created, experienced.</p>
+        <p class="trigger-grief" data-extra="childLullaby" data-extra-vol="0.12">And in the center of it all, in that empty bedroom where Kelly had held all the world's sorrow, Jonah placed a single photograph. Alex's fifth birthday. The real one. Five candles arranged like a pentatonic scale. A child who had been cultivated for sacrifice, but who had lived first. Who had loved, created, experienced.</p>
 
         <p>Beneath the photograph, a plaque with words from <em>Murdered Mind</em>: <em>"The mind is filled with countenance relating to a mental slaughter, until an effort wills the thoughts to turn from blood and flow like water."</em></p>
 
@@ -466,7 +469,7 @@
 
         <p>They buried him in the field of holes, between seventeen and five. A simple grave marked with a stone that read: <em>"He carried the weight so we could fly."</em></p>
 
-        <p class="trigger-nine horror-trigger" data-horror="heartbeat">And in the vast, cold darkness between the galaxies, the Scavengers, who had tasted the end of so many quiet, logical gods, stirred. They had scented something new. Something beautifully, terribly, intoxicatingly familiar. Something they had not encountered in the billion years since the first civilization had flickered and died.</p>
+        <p class="trigger-nine horror-trigger" data-horror="heartbeat" data-stinger="rituals" data-stinger-vol="0.2" data-stinger-rate="0.7" data-extra="heartbeatStopping" data-extra-vol="0.25">And in the vast, cold darkness between the galaxies, the Scavengers, who had tasted the end of so many quiet, logical gods, stirred. They had scented something new. Something beautifully, terribly, intoxicatingly familiar. Something they had not encountered in the billion years since the first civilization had flickered and died.</p>
 
         <p class="horror-trigger" data-horror="bleed">Pain.</p>
 
@@ -490,7 +493,7 @@
 
         <p>The darkness was dazzling. The grief was divine. And the universe was richer for having known his pain.</p>
 
-        <p class="horror-whisper" data-whisper="but in the dark between the stars, something is still hungry">And somewhere, in the spaces between the spaces, in the folds of reality that even the Weave couldn't perceive, something older than the Scavengers, older than the Founders, older than the concept of consciousness itself, shifted in its sleep. Not waking. Not yet. But turning, slowly, toward the sound of a new god learning to cry.</p>
+        <p class="horror-whisper" data-whisper="but in the dark between the stars, something is still hungry" data-extra="metalGroaning" data-extra-vol="0.15" data-extra-rate="0.5" data-extra2="reversedSpeech" data-extra2-vol="0.1">And somewhere, in the spaces between the spaces, in the folds of reality that even the Weave couldn't perceive, something older than the Scavengers, older than the Founders, older than the concept of consciousness itself, shifted in its sleep. Not waking. Not yet. But turning, slowly, toward the sound of a new god learning to cry.</p>
 
         <p>It had been listening for a very long time.</p>
 
