@@ -1,0 +1,17 @@
+# Development artifacts and sources
+_development/
+.claude/
+
+# Uncompressed audio
+**/*.wav
+**/*.aiff
+**/*.flac
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Other
+node_modules/
+.vscode/
+.idea/

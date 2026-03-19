@@ -8,10 +8,10 @@
 
 ```
 index.html                          # Title/landing page with vortex effect
-The-Fifth-Harmonic-ACT1.html        # Act I
-The-First-Weave-ACTII.html          # Act II
-The-New-Rebirth-ACTIII.html         # Act III
-final-video.html                    # Conclusion video page
+act1-fifth-harmonic.html            # Act I
+act2-first-weave.html               # Act II
+act3-new-rebirth.html               # Act III
+conclusion.html                     # Conclusion video page
 assets/
   css/
     shared-styles.css               # Core styles, CSS custom properties
@@ -30,8 +30,8 @@ assets/
     extras/                         # 10 custom sounds (OGG + MP3)
   video/
     Horror-Finale.mp4
-docs/                               # Implementation status, guides, audits
-Temp-TBSHT/                         # Temporary test files (not deployed)
+docs/                               # Technical docs, guides, audits, archive/
+_development/                       # Dev sources, howler-Javascript, Temp tests
 ```
 
 ## Tech Stack
@@ -48,6 +48,7 @@ No build step. Edit files directly and test in browser.
 
 - **Deployment**: GitHub Pages from `main` branch
 - **Live URL**: https://ee-edk.github.io/The-Void-is-Crimson/
+
 - No test framework — manual browser testing
 
 ## Key Architecture
