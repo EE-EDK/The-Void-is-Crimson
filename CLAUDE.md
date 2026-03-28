@@ -70,3 +70,15 @@ No build step. Edit files directly and test in browser.
 - Adaptive particle counts (1000 mobile, 2000 desktop)
 - Script load order: howler.min.js -> horror-samples.js -> horror-effects.js (all deferred)
 - Audio samples by Ulrich Wehner licensed CC-BY 4.0, attribution required in page footer
+
+## TODO
+- [ ] No test framework — manual browser testing
+- [ ] Maintain the horror/dark aesthetic in all visual updates
+- [ ] Vanilla CSS only — no frameworks
+- [ ] Three.js r160 for all 3D/WebGL effects
+- [ ] IIFE pattern for JS scope isolation, `'use strict'`
+- [ ] Verify asset paths after any structural changes
+- [ ] Pixel ratio capped at 1.5x for WebGL performance
+- [ ] Adaptive particle counts (1000 mobile, 2000 desktop)
+- [ ] Script load order: howler.min.js -> horror-samples.js -> horror-effects.js (all deferred)
+- [ ] Audio samples by Ulrich Wehner licensed CC-BY 4.0, attribution required in page footer

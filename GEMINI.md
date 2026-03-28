@@ -26,3 +26,11 @@ This file contains persistent instructions and context for Gemini CLI when worki
 - IIFE pattern for JS scope isolation, `'use strict'`.
 - Always verify pathing to assets after any structural changes.
 - Audio sample volumes capped per governance: atmospheres max 0.35, stingers max 0.8, extras per-sound caps in horror-samples.js.
+
+## TODO
+- [ ] Maintain the horror/dark aesthetic in all visual updates.
+- [ ] Use Vanilla CSS for styling (prefer it over frameworks).
+- [ ] Ensure Three.js (r160) is used for 3D effects.
+- [ ] IIFE pattern for JS scope isolation, `'use strict'`.
+- [ ] Always verify pathing to assets after any structural changes.
+- [ ] Audio sample volumes capped per governance: atmospheres max 0.35, stingers max 0.8, extras per-sound caps in horror-samples.js.
