@@ -41,3 +41,8 @@ dist/
 frames-generated/
 temp_*.jpg
 *.bak
+
+# Stop the bleed: new large media is not committed; big binaries travel via the Syncthing Sync-Transfer folder. Already-tracked files stay tracked.
+*.mp4
+*.mov
+*.wav
